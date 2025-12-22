@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
@@ -35,7 +35,7 @@ export default function JoinGame() {
     
     try {
       // Check if game exists
-      const games = await base44.entities.Game.filter({ code: gameCode.toUpperCase() });
+      const games = await entities.Game.filter({ code: gameCode.toUpperCase() });
       
       if (games.length === 0) {
         setError('Game not found. Check the code and try again.');

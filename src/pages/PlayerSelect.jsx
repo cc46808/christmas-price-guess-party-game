@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
@@ -38,10 +38,10 @@ export default function PlayerSelect() {
   
   const loadGame = async (code) => {
     try {
-      const games = await base44.entities.Game.filter({ code });
+      const games = await entities.Game.filter({ code });
       if (games.length > 0) {
         setGame(games[0]);
-        const playersData = await base44.entities.Player.filter({ game_id: games[0].id });
+        const playersData = await entities.Player.filter({ game_id: games[0].id });
         setPlayers(playersData.sort((a, b) => (a.order || 0) - (b.order || 0)));
       }
       setLoading(false);
@@ -53,14 +53,14 @@ export default function PlayerSelect() {
   
   const checkExistingSession = async (code, token) => {
     try {
-      const games = await base44.entities.Game.filter({ code });
+      const games = await entities.Game.filter({ code });
       if (games.length > 0) {
-        const playersData = await base44.entities.Player.filter({ game_id: games[0].id });
+        const playersData = await entities.Player.filter({ game_id: games[0].id });
         const existingPlayer = playersData.find(p => p.session_token === token);
         
         if (existingPlayer) {
           // Resume session
-          await base44.entities.Player.update(existingPlayer.id, {
+          await entities.Player.update(existingPlayer.id, {
             connection_status: 'connected',
             last_seen_at: new Date().toISOString()
           });
@@ -81,7 +81,7 @@ export default function PlayerSelect() {
     try {
       const token = generateSessionToken();
       
-      await base44.entities.Player.update(player.id, {
+      await entities.Player.update(player.id, {
         is_selected: true,
         session_token: token,
         connection_status: 'connected',
@@ -105,7 +105,7 @@ export default function PlayerSelect() {
   const handleAvatarSelect = async (avatarId) => {
     try {
       const token = localStorage.getItem(`player_session_${gameCode}`);
-      await base44.entities.Player.update(selectedPlayer.id, {
+      await entities.Player.update(selectedPlayer.id, {
         avatar_id: avatarId
       });
       navigate(createPageUrl('PlayerGame') + `?code=${gameCode}&token=${token}`);

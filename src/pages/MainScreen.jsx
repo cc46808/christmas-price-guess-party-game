@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SnowfallBackground, ChristmasCard, GlowText, PriceTag, ConfettiExplosion } from '@/components/game/GameTheme';
@@ -48,22 +48,22 @@ export default function MainScreen() {
     if (!gameCode) return;
     
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode });
+      const games = await entities.Game.filter({ code: gameCode });
       if (games.length === 0) return;
       
       const gameData = games[0];
       setGame(gameData);
       
-      const playersData = await base44.entities.Player.filter({ game_id: gameData.id });
+      const playersData = await entities.Player.filter({ game_id: gameData.id });
       setPlayers(playersData.sort((a, b) => (a.order || 0) - (b.order || 0)));
       
       if (gameData.current_round_index > 0) {
-        const rounds = await base44.entities.Round.filter({ game_id: gameData.id });
+        const rounds = await entities.Round.filter({ game_id: gameData.id });
         const current = rounds.find(r => r.index === gameData.current_round_index);
         setCurrentRound(current);
         
         if (current) {
-          const guessesData = await base44.entities.Guess.filter({ round_id: current.id });
+          const guessesData = await entities.Guess.filter({ round_id: current.id });
           setGuesses(guessesData);
         }
         

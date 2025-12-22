@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 
 const POLL_INTERVAL = 500; // Poll every 500ms for realtime feel
 
@@ -19,7 +19,7 @@ export function useGameState(gameCode, role = 'player') {
     if (!gameCode) return;
     
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode });
+      const games = await entities.Game.filter({ code: gameCode });
       if (games.length === 0) {
         setError('Game not found');
         setLoading(false);
@@ -30,8 +30,8 @@ export function useGameState(gameCode, role = 'player') {
       setGame(gameData);
       
       const [playersData, roundsData] = await Promise.all([
-        base44.entities.Player.filter({ game_id: gameData.id }),
-        base44.entities.Round.filter({ game_id: gameData.id })
+        entities.Player.filter({ game_id: gameData.id }),
+        entities.Round.filter({ game_id: gameData.id })
       ]);
       
       setPlayers(playersData.sort((a, b) => (a.order || 0) - (b.order || 0)));
@@ -44,14 +44,14 @@ export function useGameState(gameCode, role = 'player') {
         
         // Fetch guesses for current round
         if (current) {
-          const guessesData = await base44.entities.Guess.filter({ round_id: current.id });
+          const guessesData = await entities.Guess.filter({ round_id: current.id });
           setGuesses(guessesData);
         }
       }
       
       // Fetch balance events if GM
       if (role === 'gm') {
-        const events = await base44.entities.BalanceEvent.filter({ game_id: gameData.id });
+        const events = await entities.BalanceEvent.filter({ game_id: gameData.id });
         setBalanceEvents(events);
       }
       
@@ -129,7 +129,7 @@ export function usePlayerSession(gameCode) {
     setPlayerToken(token);
     
     // Update player as selected
-    await base44.entities.Player.update(playerId, {
+    await entities.Player.update(playerId, {
       is_selected: true,
       session_token: token,
       connection_status: 'connected',

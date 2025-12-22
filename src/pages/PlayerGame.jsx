@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import PriceInput from '@/components/game/PriceInput';
@@ -71,7 +71,7 @@ export default function PlayerGame() {
     if (!gameCode || !playerToken) return;
     
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode });
+      const games = await entities.Game.filter({ code: gameCode });
       if (games.length === 0) return;
       
       const gameData = games[0];
@@ -79,12 +79,12 @@ export default function PlayerGame() {
       setGame(gameData);
       
       // Get player data
-      const players = await base44.entities.Player.filter({ game_id: gameData.id });
+      const players = await entities.Player.filter({ game_id: gameData.id });
       const myPlayer = players.find(p => p.session_token === playerToken);
       
       if (myPlayer) {
         // Update connection status
-        await base44.entities.Player.update(myPlayer.id, {
+        await entities.Player.update(myPlayer.id, {
           connection_status: 'connected',
           last_seen_at: new Date().toISOString()
         });
@@ -113,7 +113,7 @@ export default function PlayerGame() {
       
       // Get current round
       if (gameData.current_round_index > 0) {
-        const rounds = await base44.entities.Round.filter({ game_id: gameData.id });
+        const rounds = await entities.Round.filter({ game_id: gameData.id });
         const current = rounds.find(r => r.index === gameData.current_round_index);
         setCurrentRound(current);
         
@@ -127,7 +127,7 @@ export default function PlayerGame() {
         
         // Get my guess for current round
         if (current && myPlayer) {
-          const guesses = await base44.entities.Guess.filter({ 
+          const guesses = await entities.Guess.filter({ 
             round_id: current.id, 
             player_id: myPlayer.id 
           });
@@ -172,14 +172,14 @@ export default function PlayerGame() {
     try {
       if (myGuess) {
         // Update existing guess
-        await base44.entities.Guess.update(myGuess.id, {
+        await entities.Guess.update(myGuess.id, {
           value: guessValue,
           submitted_at: new Date().toISOString(),
           revision: (myGuess.revision || 1) + 1
         });
       } else {
         // Create new guess
-        await base44.entities.Guess.create({
+        await entities.Guess.create({
           game_id: game.id,
           round_id: currentRound.id,
           player_id: player.id,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +46,7 @@ export default function GameMaster() {
     
     setLoading(true);
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode.toUpperCase() });
+      const games = await entities.Game.filter({ code: gameCode.toUpperCase() });
       if (games.length === 0) {
         setError('Game not found');
         setLoading(false);
@@ -63,7 +63,7 @@ export default function GameMaster() {
   const handleAuthenticate = async () => {
     setLoading(true);
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode });
+      const games = await entities.Game.filter({ code: gameCode });
       if (games.length > 0 && games[0].gm_pin === inputPin) {
         setGmPin(inputPin);
         window.history.replaceState(null, '', `?code=${gameCode}`);
@@ -276,7 +276,7 @@ function GameSetup({ gameCode, onComplete }) {
     
     try {
       // Create game
-      const game = await base44.entities.Game.create({
+      const game = await entities.Game.create({
         code: gameCode,
         gm_pin: pin,
         status: 'lobby',
@@ -289,7 +289,7 @@ function GameSetup({ gameCode, onComplete }) {
       
       // Create players
       for (let i = 0; i < validPlayers.length; i++) {
-        await base44.entities.Player.create({
+        await entities.Player.create({
           game_id: game.id,
           name: validPlayers[i].name,
           avatar_id: validPlayers[i].avatar_id,
@@ -302,7 +302,7 @@ function GameSetup({ gameCode, onComplete }) {
       
       // Create rounds
       for (let i = 0; i < validRounds.length; i++) {
-        await base44.entities.Round.create({
+        await entities.Round.create({
           game_id: game.id,
           index: i + 1,
           item_name: validRounds[i].item_name,
@@ -318,7 +318,7 @@ function GameSetup({ gameCode, onComplete }) {
       }
       
       // Log event
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'game_created',
         payload: { players: validPlayers.length, rounds: validRounds.length }

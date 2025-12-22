@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,15 +34,15 @@ export default function GMControlPanel({ gameCode }) {
   
   const fetchData = useCallback(async () => {
     try {
-      const games = await base44.entities.Game.filter({ code: gameCode });
+      const games = await entities.Game.filter({ code: gameCode });
       if (games.length === 0) return;
       
       const gameData = games[0];
       setGame(gameData);
       
       const [playersData, roundsData] = await Promise.all([
-        base44.entities.Player.filter({ game_id: gameData.id }),
-        base44.entities.Round.filter({ game_id: gameData.id })
+        entities.Player.filter({ game_id: gameData.id }),
+        entities.Round.filter({ game_id: gameData.id })
       ]);
       
       setPlayers(playersData.sort((a, b) => (a.order || 0) - (b.order || 0)));
@@ -53,7 +53,7 @@ export default function GMControlPanel({ gameCode }) {
         setCurrentRound(current);
         
         if (current) {
-          const guessesData = await base44.entities.Guess.filter({ round_id: current.id });
+          const guessesData = await entities.Guess.filter({ round_id: current.id });
           setGuesses(guessesData);
         }
         
@@ -70,7 +70,7 @@ export default function GMControlPanel({ gameCode }) {
       }
       
       // Fetch balance events
-      const events = await base44.entities.BalanceEvent.filter({ game_id: gameData.id });
+      const events = await entities.BalanceEvent.filter({ game_id: gameData.id });
       setBalanceEvents(events);
       
       setLoading(false);
@@ -94,8 +94,8 @@ export default function GMControlPanel({ gameCode }) {
     try {
       // Give all players $20
       for (const player of players) {
-        await base44.entities.Player.update(player.id, { balance: 20 });
-        await base44.entities.BalanceEvent.create({
+        await entities.Player.update(player.id, { balance: 20 });
+        await entities.BalanceEvent.create({
           game_id: game.id,
           player_id: player.id,
           type: 'deposit',
@@ -104,7 +104,7 @@ export default function GMControlPanel({ gameCode }) {
         });
       }
       
-      await base44.entities.Game.update(game.id, {
+      await entities.Game.update(game.id, {
         status: 'in_progress',
         started_at: new Date().toISOString(),
         current_round_index: 1,
@@ -114,10 +114,10 @@ export default function GMControlPanel({ gameCode }) {
       // Update first round status
       const firstRound = rounds.find(r => r.index === 1);
       if (firstRound) {
-        await base44.entities.Round.update(firstRound.id, { status: 'listening' });
+        await entities.Round.update(firstRound.id, { status: 'listening' });
       }
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'game_started',
         payload: {}
@@ -133,13 +133,13 @@ export default function GMControlPanel({ gameCode }) {
   const startRound = async () => {
     setActionLoading(true);
     try {
-      await base44.entities.Game.update(game.id, { current_phase: 'listening' });
+      await entities.Game.update(game.id, { current_phase: 'listening' });
       
       if (currentRound) {
-        await base44.entities.Round.update(currentRound.id, { status: 'listening' });
+        await entities.Round.update(currentRound.id, { status: 'listening' });
       }
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'round_start',
         payload: { round: game.current_round_index }
@@ -155,20 +155,20 @@ export default function GMControlPanel({ gameCode }) {
   const openGuessing = async () => {
     setActionLoading(true);
     try {
-      await base44.entities.Game.update(game.id, {
+      await entities.Game.update(game.id, {
         current_phase: 'guessing',
         guessing_start_time: new Date().toISOString(),
         guessing_duration_seconds: 10
       });
       
       if (currentRound) {
-        await base44.entities.Round.update(currentRound.id, { 
+        await entities.Round.update(currentRound.id, { 
           status: 'guessing',
           guessing_start_time: new Date().toISOString()
         });
       }
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'guessing_open',
         payload: { round: game.current_round_index }
@@ -184,13 +184,13 @@ export default function GMControlPanel({ gameCode }) {
   const closeGuessing = async () => {
     setActionLoading(true);
     try {
-      await base44.entities.Game.update(game.id, { current_phase: 'closed' });
+      await entities.Game.update(game.id, { current_phase: 'closed' });
       
       if (currentRound) {
-        await base44.entities.Round.update(currentRound.id, { status: 'closed' });
+        await entities.Round.update(currentRound.id, { status: 'closed' });
       }
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'guessing_closed',
         payload: { round: game.current_round_index }
@@ -206,13 +206,13 @@ export default function GMControlPanel({ gameCode }) {
   const revealPrice = async () => {
     setActionLoading(true);
     try {
-      await base44.entities.Game.update(game.id, { current_phase: 'revealing' });
+      await entities.Game.update(game.id, { current_phase: 'revealing' });
       
       if (currentRound) {
-        await base44.entities.Round.update(currentRound.id, { status: 'revealed' });
+        await entities.Round.update(currentRound.id, { status: 'revealed' });
       }
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'price_revealed',
         payload: { round: game.current_round_index, price: currentRound?.actual_price }
@@ -248,7 +248,7 @@ export default function GMControlPanel({ gameCode }) {
           newBalance += game.exact_bonus_amount;
           exactGuessers.push(player.id);
           
-          await base44.entities.BalanceEvent.create({
+          await entities.BalanceEvent.create({
             game_id: game.id,
             player_id: player.id,
             type: 'exact_bonus',
@@ -258,9 +258,9 @@ export default function GMControlPanel({ gameCode }) {
           });
         }
         
-        await base44.entities.Player.update(player.id, { balance: newBalance });
+        await entities.Player.update(player.id, { balance: newBalance });
         
-        await base44.entities.BalanceEvent.create({
+        await entities.BalanceEvent.create({
           game_id: game.id,
           player_id: player.id,
           type: 'round_delta',
@@ -282,15 +282,15 @@ export default function GMControlPanel({ gameCode }) {
       closestPlayers.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
       const closestWinnerId = closestPlayers[0]?.playerId;
       
-      await base44.entities.Round.update(currentRound.id, { 
+      await entities.Round.update(currentRound.id, { 
         status: 'scored',
         closest_winner_id: closestWinnerId,
         exact_guessers: exactGuessers
       });
       
-      await base44.entities.Game.update(game.id, { current_phase: 'results' });
+      await entities.Game.update(game.id, { current_phase: 'results' });
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'round_scored',
         payload: { 
@@ -315,27 +315,27 @@ export default function GMControlPanel({ gameCode }) {
       const isGameOver = nextRoundIndex > game.total_rounds;
       
       if (isBreakRound) {
-        await base44.entities.Game.update(game.id, { current_phase: 'break' });
-        await base44.entities.GameEventLog.create({
+        await entities.Game.update(game.id, { current_phase: 'break' });
+        await entities.GameEventLog.create({
           game_id: game.id,
           type: 'break_started',
           payload: { afterRound: game.current_round_index }
         });
       } else if (isGameOver) {
-        await base44.entities.Game.update(game.id, { 
+        await entities.Game.update(game.id, { 
           status: 'finished',
           current_phase: 'break'
         });
       } else {
         // Move to next round
-        await base44.entities.Game.update(game.id, {
+        await entities.Game.update(game.id, {
           current_round_index: nextRoundIndex,
           current_phase: 'listening'
         });
         
         const nextRound = rounds.find(r => r.index === nextRoundIndex);
         if (nextRound) {
-          await base44.entities.Round.update(nextRound.id, { status: 'listening' });
+          await entities.Round.update(nextRound.id, { status: 'listening' });
         }
       }
       
@@ -352,14 +352,14 @@ export default function GMControlPanel({ gameCode }) {
       const nextRoundIndex = game.current_round_index + 1;
       
       if (nextRoundIndex <= game.total_rounds) {
-        await base44.entities.Game.update(game.id, {
+        await entities.Game.update(game.id, {
           current_round_index: nextRoundIndex,
           current_phase: 'listening'
         });
         
         const nextRound = rounds.find(r => r.index === nextRoundIndex);
         if (nextRound) {
-          await base44.entities.Round.update(nextRound.id, { status: 'listening' });
+          await entities.Round.update(nextRound.id, { status: 'listening' });
         }
       }
       
@@ -373,9 +373,9 @@ export default function GMControlPanel({ gameCode }) {
   const togglePause = async () => {
     setActionLoading(true);
     try {
-      await base44.entities.Game.update(game.id, { is_paused: !game.is_paused });
+      await entities.Game.update(game.id, { is_paused: !game.is_paused });
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: game.is_paused ? 'game_resumed' : 'game_paused',
         payload: {}
@@ -399,30 +399,30 @@ export default function GMControlPanel({ gameCode }) {
       for (const event of roundEvents) {
         const player = players.find(p => p.id === event.player_id);
         if (player) {
-          await base44.entities.Player.update(player.id, { 
+          await entities.Player.update(player.id, { 
             balance: player.balance - event.amount 
           });
         }
         
         // Delete the event
-        await base44.entities.BalanceEvent.delete(event.id);
+        await entities.BalanceEvent.delete(event.id);
       }
       
       // Delete guesses
       for (const guess of guesses) {
-        await base44.entities.Guess.delete(guess.id);
+        await entities.Guess.delete(guess.id);
       }
       
       // Reset round
-      await base44.entities.Round.update(currentRound.id, { 
+      await entities.Round.update(currentRound.id, { 
         status: 'listening',
         closest_winner_id: null,
         exact_guessers: []
       });
       
-      await base44.entities.Game.update(game.id, { current_phase: 'listening' });
+      await entities.Game.update(game.id, { current_phase: 'listening' });
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'round_undone',
         payload: { round: game.current_round_index }
@@ -443,9 +443,9 @@ export default function GMControlPanel({ gameCode }) {
       const amount = parseInt(balanceAmount);
       const newBalance = selectedPlayer.balance + amount;
       
-      await base44.entities.Player.update(selectedPlayer.id, { balance: newBalance });
+      await entities.Player.update(selectedPlayer.id, { balance: newBalance });
       
-      await base44.entities.BalanceEvent.create({
+      await entities.BalanceEvent.create({
         game_id: game.id,
         player_id: selectedPlayer.id,
         type: 'manual_adjust',
@@ -453,7 +453,7 @@ export default function GMControlPanel({ gameCode }) {
         note: 'GM manual adjustment'
       });
       
-      await base44.entities.GameEventLog.create({
+      await entities.GameEventLog.create({
         game_id: game.id,
         type: 'manual_balance',
         payload: { playerId: selectedPlayer.id, amount }
