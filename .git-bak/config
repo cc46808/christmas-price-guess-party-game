@@ -1,0 +1,15 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/base44dev/christmas-price-guess-party-game-73d203d9.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	vscode-merge-base = origin/main
+	gk-last-accessed = 2025-12-22T23:25:24.088Z
+	merge = refs/heads/master
+	gk-last-modified = 2025-12-22T23:25:57.818Z
