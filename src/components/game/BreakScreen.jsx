@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ConfettiExplosion, ChristmasCard, GlowText, MarqueeBorder } from './GameTheme';
+import { ConfettiExplosion, ChristmasCard, GlowText } from './GameTheme';
 import Leaderboard from './Leaderboard';
 import { Gift, Trophy, Star, Sparkles } from 'lucide-react';
 
@@ -64,8 +64,6 @@ export default function BreakScreen({
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex flex-col items-center justify-center p-8 relative overflow-hidden">
-      <MarqueeBorder position="top" />
-      <MarqueeBorder position="bottom" />
       <ConfettiExplosion active={showConfetti} />
       
       {/* Decorative lights */}

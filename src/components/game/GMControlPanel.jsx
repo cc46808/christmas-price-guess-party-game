@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from './GameTheme';
+import { ChristmasCard, GlowText } from './GameTheme';
 import PlayerAvatar from './PlayerAvatar';
 import Leaderboard from './Leaderboard';
 import { 
@@ -594,8 +594,6 @@ export default function GMControlPanel({ gameCode }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center relative">
-        <MarqueeBorder position="top" />
-        <MarqueeBorder position="bottom" />
         <Loader2 className="w-12 h-12 text-amber-200 animate-spin" />
       </div>
     );
@@ -603,9 +601,6 @@ export default function GMControlPanel({ gameCode }) {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-4 relative">
-      <MarqueeBorder position="top" />
-      <MarqueeBorder position="bottom" />
-      <SnowfallBackground intensity={15} />
       
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}

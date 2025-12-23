@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { entities } from '@/api/database';
 import { subscribeToGame } from '@/api/realtime';
-import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from '@/components/game/GameTheme';
+import { ChristmasCard, GlowText } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import PriceInput from '@/components/game/PriceInput';
 import WalletAnimation, { MiniWalletChange } from '@/components/game/WalletAnimation';
@@ -242,9 +242,6 @@ export default function PlayerGame() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] relative overflow-hidden">
-      <SnowfallBackground intensity={20} />
-      <MarqueeBorder position="top" />
-      <MarqueeBorder position="bottom" />
       
       {/* Timer edge pulse */}
       <TimerEdgePulse seconds={timeRemaining} hasSubmitted={hasSubmitted} />
@@ -287,8 +284,132 @@ export default function PlayerGame() {
       
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
-        {/* Waiting State */}
-        {game?.status === 'lobby' && (
+        {/* Status Dialog - Always visible to show current state */}
+        {!isGuessing && (
+          <ChristmasCard className="text-center max-w-sm mb-6">
+            {game?.status === 'lobby' && (
+              <>
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-6xl mb-4"
+                >
+                  🎄
+                </motion.div>
+                <h2 className="text-2xl font-bold">
+                  <GlowText>Waiting for Players to Join...</GlowText>
+                </h2>
+                <p className="text-white/70 mt-4">
+                  The GameMaster will start when ready!
+                </p>
+              </>
+            )}
+            
+            {game?.status === 'in_progress' && game?.is_paused && (
+              <>
+                <div className="text-6xl mb-4">⏸️</div>
+                <h2 className="text-2xl font-bold">
+                  <GlowText>Game Paused</GlowText>
+                </h2>
+                <p className="text-white/70 mt-4">
+                  Waiting for GameMaster to resume...
+                </p>
+              </>
+            )}
+            
+            {game?.current_phase === 'break' && (
+              <>
+                <div className="text-6xl mb-4">☕</div>
+                <h2 className="text-2xl font-bold">
+                  <GlowText>Break Time!</GlowText>
+                </h2>
+                <p className="text-white/70 mt-4">
+                  Enjoy the break! Game will resume shortly.
+                </p>
+              </>
+            )}
+            
+            {isListening && (
+              <>
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-8xl mb-6"
+                >
+                  👂
+                </motion.div>
+                <h2 className="text-3xl font-black">
+                  <GlowText>LISTEN UP!</GlowText>
+                </h2>
+                <p className="text-white/70 mt-4 text-lg">
+                  Pay attention to the item description!
+                </p>
+                {currentRound && (
+                  <div className="mt-6 p-4 bg-black/30 rounded-xl">
+                    <div className="text-xl font-bold text-yellow-300">
+                      {currentRound.item_name}
+                    </div>
+                    {currentRound.show_hint_to_players && currentRound.hint_text && (
+                      <div className="text-white/60 mt-2">
+                        💡 {currentRound.hint_text}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            
+            {(game?.current_phase === 'closed' || game?.current_phase === 'revealing') && myGuess && (
+              <>
+                <div className="text-6xl mb-4">🔒</div>
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  <GlowText>Guesses Locked!</GlowText>
+                </h2>
+                <div className="text-4xl font-black text-yellow-300 font-mono mb-4">
+                  Your guess: ${myGuess.value}
+                </div>
+                <p className="text-white/70">Waiting for the price reveal...</p>
+              </>
+            )}
+            
+            {game?.current_phase === 'results' && currentRound && (
+              <>
+                <h2 className="text-xl font-bold text-white mb-2">Actual Price:</h2>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', damping: 10 }}
+                  className="text-5xl font-black text-green-400 font-mono mb-4"
+                >
+                  ${currentRound.actual_price}
+                </motion.div>
+                {myGuess && (
+                  <div className="text-white/80">
+                    Your guess: <span className="font-mono font-bold">${myGuess.value}</span>
+                  </div>
+                )}
+                {roundResult && (
+                  <MiniWalletChange amount={roundResult.delta} />
+                )}
+              </>
+            )}
+            
+            {game?.current_phase === 'finished' && (
+              <>
+                <div className="text-6xl mb-4">🏆</div>
+                <h2 className="text-2xl font-bold">
+                  <GlowText>Game Over!</GlowText>
+                </h2>
+                <p className="text-white/70 mt-4">
+                  Thanks for playing! Check the final leaderboard.
+                </p>
+              </>
+            )}
+          </ChristmasCard>
+        )}
+        
+        {/* Waiting State - removed, now part of status dialog above */}
+        {false && game?.status === 'lobby' && (
           <ChristmasCard className="text-center max-w-sm">
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
@@ -306,8 +427,8 @@ export default function PlayerGame() {
           </ChristmasCard>
         )}
         
-        {/* Listening State */}
-        {isListening && (
+        {/* Listening State - removed, now part of status dialog */}
+        {false && isListening && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -424,8 +545,8 @@ export default function PlayerGame() {
           </motion.div>
         )}
         
-        {/* Closed/Revealing State */}
-        {(game?.current_phase === 'closed' || game?.current_phase === 'revealing') && myGuess && (
+        {/* Closed/Revealing State - removed, now in status dialog */}
+        {false && (game?.current_phase === 'closed' || game?.current_phase === 'revealing') && myGuess && (
           <ChristmasCard className="text-center max-w-sm">
             <div className="text-6xl mb-4">🔒</div>
             <h2 className="text-2xl font-bold text-white mb-4">Guess Locked!</h2>
@@ -436,8 +557,8 @@ export default function PlayerGame() {
           </ChristmasCard>
         )}
         
-        {/* Results State */}
-        {game?.current_phase === 'results' && currentRound && (
+        {/* Results State - removed, now in status dialog */}
+        {false && game?.current_phase === 'results' && currentRound && (
           <ChristmasCard className="text-center max-w-sm">
             <h2 className="text-xl font-bold text-white mb-2">Actual Price:</h2>
             <motion.div
@@ -473,8 +594,8 @@ export default function PlayerGame() {
           </ChristmasCard>
         )}
         
-        {/* Break State */}
-        {game?.current_phase === 'break' && (
+        {/* Break State - removed, now in status dialog */}
+        {false && game?.current_phase === 'break' && (
           <ChristmasCard className="text-center max-w-sm">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}

@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SnowfallBackground, ChristmasCard, GlowText, PriceTag, ConfettiExplosion, MarqueeBorder } from '@/components/game/GameTheme';
+import { ChristmasCard, GlowText, PriceTag, ConfettiExplosion } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import Timer from '@/components/game/Timer';
 import Leaderboard from '@/components/game/Leaderboard';
@@ -185,9 +185,7 @@ export default function MainScreen() {
   // Audio enable overlay
   if (!audioEnabled) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center p-6">
-        <SnowfallBackground intensity={40} />
-        
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center">
         <ChristmasCard className="text-center max-w-md relative z-10">
           <motion.div
             animate={{ scale: [1, 1.1, 1] }}
@@ -260,7 +258,6 @@ export default function MainScreen() {
   if (!game || game.status === 'lobby') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-8 relative">
-        <SnowfallBackground intensity={50} />
         <ConfettiExplosion active={showConfetti} />
         
         <div className="relative z-10 max-w-6xl mx-auto">
