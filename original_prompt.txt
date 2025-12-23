@@ -1,0 +1,254 @@
+“Christmas Price Guess Party Game” (web, realtime, multi-screen)
+
+Goal
+Create a fun, flashy, kid-friendly (ages 4–16) web app for a family Christmas party game loosely inspired by The Price Is Right. The app must support:
+- GameMaster (GM) control panel (laptop)
+- Main Game Screen (projected TV, landscape)
+- Player/User Screen (phones/tablets)
+- Start/Join Screen (players select identity)
+
+Hard Requirements
+- Up to 10 players active per game.
+- Works reliably over the internet (some devices may be on cellular).
+- Realtime sync across all screens with low latency.
+- Auto-reconnect on refresh/network drop; preserve state (players resume their identity + balance).
+- Prevent player device screen timeout (best effort) using Wake Lock API; graceful fallback if unsupported.
+- Fun, flashy animations; Christmas + 1970s classic Price-Is-Right vibe.
+- Sound effects ONLY on the Main Game Screen (no mute toggle in-app).
+
+Core Game Rules
+- GM creates/configures a game, players, and all rounds BEFORE starting (pregame setup).
+- Starting balance: each player begins with $20 when GM starts the game.
+  - Player screen must animate “$20 going into wallet” on game start.
+- Game has N rounds (GM set), plus planned breaks:
+  - After round 5: break to play offline mini-game; GM can add money to players.
+  - After round 10: podium + confetti; top 4 highlighted as “Wheel Spin #1 finalists” (offline). GM can add money to players.
+  - After round 15: break for “Lucky Seven” (offline); GM can add money to players.
+  - After round 20 (final): podium + confetti; top 4 highlighted as “Wheel Spin #2 finalists”; show note that winner plays showcase showdown with winner of first wheel spin (offline).
+- Each round:
+  1) GM starts the round (players become disabled/“LISTENING…” while host describes the item).
+  2) GM opens guessing and starts a 10s timer (timer is for excitement; no penalty if submitted after 10s).
+     - Player UI undims, shows number input using large +/– stepper and a big “Lock In” button.
+     - Default allowed range per round is $1–$10, but GM can set min/max per round.
+  3) Players submit guesses in whole dollars.
+     - Duplicates allowed.
+     - Player can edit/resubmit while timer > 0.
+     - At timer == 0:
+       - If player already submitted at least once: keep their last submitted guess (no more editing).
+       - If player has not submitted yet: show an unobstructed urgent message: “Submit your final guess!” and allow ONE submit (no editing after).
+     - If player never submits at all:
+       - Default guess is treated as $1, but GM can override the default-missing-guess value at any time.
+  4) After GM closes guessing OR all players have submitted at least once:
+     - GM reveals the actual price (already entered in pregame setup).
+     - Scoring: each player loses |guess - actual| dollars. Exact guess loses $0.
+     - Balances can go negative.
+     - Exact guess bonus: configurable per game by GM (e.g., +$X for exact). GM can set it to 0.
+     - “Closest winner” highlight:
+       - Determine smallest absolute difference.
+       - If multiple players tie for closest difference, highlight the one with the FASTEST submitted time among tied players.
+       - Also visually mark any exact guesses (and apply exact bonus if enabled).
+  5) End round: show updated balances + leaderboard.
+
+Screens & UX Details
+
+1) Start / Join Screen (Player devices)
+- Input: Game Code (short, human-friendly) OR open via QR link (auto-fills code).
+- Then show a grid of pre-created player tiles (Name + Avatar).
+  - Already selected/in-use players appear dimmed + unselectable.
+- When player selects themselves:
+  - Save a persistent “playerSessionToken” to localStorage for auto-resume.
+  - If they refresh/reopen, they auto-rejoin the same player identity.
+- Avatar selection:
+  - Preset cartoon avatar library. Allow player to choose/change their avatar before game starts, and optionally during breaks (GM-controlled toggle).
+- Once selected, show “Waiting for next round…” state until GM starts the game/rounds.
+
+2) Player/User Game Screen (phones/tablets)
+States:
+- Waiting room: “Waiting for next round…” with playful idle animation.
+- Listening (disabled): screen dims with big “LISTENING…” overlay while host describes item.
+- Guessing open:
+  - Undim.
+  - Show: Round X of N, item name + photo (if allowed by GM), hint text (if provided).
+  - Show large +/– stepper with current value; respect min/max range.
+  - Big “Lock In Price” button.
+  - After submit (while timer > 0): show “Locked in: $Y (tap to change before timer ends)” and allow resubmit.
+  - At 6 seconds remaining, if player has not submitted: start feathered yellow edge pulse (breathing/heartbeat).
+  - At 3 seconds remaining, if player has not submitted: change edge pulse to feathered red.
+  - At 0: show unobstructed message, if player has not submitted: “Time’s up — submit now!” (but still allow submit; no penalty). If already submitted, no editing.
+- Submitted/locked:
+  - Dim again and show “Guess locked: $Y”.
+- Round results:
+  - Show actual price and how much they lost (or bonus if exact).
+  - Animate money leaving/entering wallet accordingly.
+- Keep-awake:
+  - Use Wake Lock API; if denied/unsupported, show a small hint: “Keep this screen open.”
+
+3) Main Game Screen (projected TV, landscape)
+Must be high-impact, readable from across a room.
+- Pregame Lobby:
+  - Show Game Code big + QR code big.
+  - Show list/grid of all players with avatars, connection status icon (connected/disconnected), and balances (once game started).
+- During game:
+  - Always show: Round X of N.
+  - Show item name/photo/hint (when GM sets it to visible).
+  - Show 10-second timer visual + sound effects (main screen only).
+  - Show per-player tiles: Name, Avatar, Current Balance.
+  - Realtime indicator per player:
+    - “Not submitted”
+    - “Submitted” (turns green/checkmark) when they submit at least once
+    - If they resubmit, reflect latest value privately to GM, but main screen only needs “Submitted” status.
+- Results view:
+  - Reveal actual price.
+  - Show who was exact (and bonus if applicable).
+  - Show “closest winner” highlight (with tie-break by fastest submission).
+  - Show per-player delta this round: “- $D” (or “+ $B” bonus).
+- Leaderboard view:
+  - Sorted by balance desc (ties: higher balance, least accumulative time to answer).
+  - Animate tile movement when ranks change.
+- Break screens:
+  - After rounds 5, 10, 15, and 20, show special themed intermission panels with instructions.
+  - At 10 and 20: podium + confetti animation + top 4 highlighted.
+
+4) GameMaster Screen (GM laptop)
+GM capabilities:
+A) Game Setup (pregame)
+- Create Game (auto-generated game code; also allow custom code).
+- Configure:
+  - Total rounds (N)
+  - Exact guess bonus amount (integer dollars; can be 0)
+  - Default missing guess value (integer dollars; default 1)
+- Create players (up to 10):
+  - Name
+  - Default avatar (players can change later if allowed)
+- Create rounds (1..N):
+  - Item name (string)
+  - Item photo (upload or URL; store and serve optimized)
+  - Hint text (optional)
+  - Guess range min/max (default 1..10)
+  - Actual retail price (integer dollars) — required at setup time (but hidden from players)
+  - Visibility toggles:
+    - Show photo/hint to players during guessing (on/off)
+- Validate that all rounds have actual prices before allowing “Start Game”.
+
+B) Live Control
+- Start Game:
+  - Triggers initial $20 deposit and wallet animation on each player screen.
+- Start Round:
+  - Puts all player screens into LISTENING state.
+  - Main screen shows round header and “Listening” status.
+- Open Guessing:
+  - Starts 10s timer; enables player input.
+  - Timer events broadcast to players for edge pulse effects.
+- Close Guessing:
+  - Stops accepting edits (still allow late first-time submit only if timer already hit 0, per rules; otherwise close fully).
+- Reveal Price:
+  - Shows actual price on main screen + pushes results to players.
+- End Round:
+  - Applies scoring and updates balances + leaderboard.
+- Pause / Resume at any time:
+  - Freezes timers and disables inputs.
+- Undo Round:
+  - Revert balances and round state to pre-round (including removing logged guesses/round results) and return to listening state for that round.
+- Manual balance edit:
+  - Add/subtract/set any player balance at any time (used for offline minigames). Must be logged in history.
+- Missing guess override:
+  - For any player in any round with no guess, GM can override their “missing guess value” for that round (and re-score that round if already resolved).
+
+Realtime & State Architecture (must be robust)
+Implement a server-authoritative realtime game state with:
+- A persistent database for games, players, rounds, guesses, balance changes, and event logs.
+- A realtime transport (WebSockets preferred) so main screen + GM + players stay in sync across cellular/Wi‑Fi.
+- Every client is a “view/controller” of the same authoritative game state.
+- Auto-reconnect:
+  - On reconnect, client fetches latest authoritative state and resumes correct UI state.
+- Idempotent actions:
+  - Submitting guess, resubmitting, GM controls should be safe to retry without double-applying money changes.
+- Audit/event log:
+  - Store timestamped events: game start, round start/open/close, guesses (with submit time), reveal, scoring, manual adjustments, undo actions.
+- Timing:
+  - Timer should be driven by server time (store startTime, duration; clients render based on sync) to prevent drift.
+  - Record submit timestamp server-side for tie-breaking.
+
+Data Model (minimum)
+- Game
+  - id, code, status (lobby|in_progress|intermission|finished), totalRounds
+  - exactBonusAmount, defaultMissingGuessValue, createdAt, startedAt, currentRoundIndex
+- Player
+  - id, gameId, name, avatarId, balance, isSelected (in use), lastSeenAt, connectionStatus
+- Round
+  - id, gameId, index, itemName, itemPhotoUrl, hintText
+  - minGuess, maxGuess, actualPrice
+  - showPhotoToPlayers, showHintToPlayers
+  - status (pending|listening|guessing|closed|revealed|scored)
+  - guessingStartTime, guessingDurationSeconds (10)
+- Guess
+  - id, gameId, roundId, playerId
+  - value, submittedAt (server timestamp), revision (increment on resubmit)
+  - isFinal (true when timer==0 and player submits final)
+- BalanceEvent
+  - id, gameId, playerId, type (deposit|round_delta|exact_bonus|manual_adjust|undo)
+  - amount (+/-), roundId nullable, note, createdAt
+- GameEventLog
+  - id, gameId, type, payloadJson, createdAt
+
+Scoring Implementation Details
+On “End Round”:
+- For each player, determine their effective guess:
+  - Latest guess if submitted at least once, else use defaultMissingGuessValue unless GM override exists for that player+round.
+- delta = -abs(guess - actualPrice)
+- if guess == actualPrice and exactBonusAmount > 0: add +exactBonusAmount as separate event
+- Apply deltas atomically; store BalanceEvents.
+- Determine “closest winner”:
+  - diffMin = min(abs(guess-actualPrice))
+  - candidates = players with diffMin
+  - winner = candidate with earliest submittedAt among candidates (if a candidate never submitted and is using default, treat submittedAt as 20s so they cannot win tie-break)
+- Push result payload to main screen + players.
+
+UI/Design Direction
+- Theme: Christmas + 1970s classic game show.
+- Visual style: bold typography, warm holiday palette, sparkly accents, retro gradients, thick borders, subtle scanline/glow, playful bounce animations, drop shadows.
+- Use large touch targets and big type for player screens.
+- Main screen must be readable from distance; avoid small text.
+- Animation requirements:
+  - Wallet deposit animation at game start (+$20).
+  - Timer effects on main screen (audio + visuals).
+  - Player edge pulse at 6s yellow, 3s red; at 0 show urgent unobstructed prompt.
+  - Leaderboard rank transitions animated.
+  - Confetti + podium at round 10 and round 20.
+- Sounds:
+  - Main screen only: ticking/countdown, reveal sting, success chime for exact, whoosh for leaderboard changes.
+  - Provide a “Tap to enable audio” gate on main screen early (browser autoplay policy).
+
+Security / Roles
+- GM screen protected by a simple GM PIN set at game creation (enough for party use).
+- Player clients can only:
+  - join/select identity
+  - change their own avatar (if allowed)
+  - submit/resubmit their own guesses
+- Main screen is view-only (no controls).
+
+Pages / Routes (suggested)
+- / (landing: choose Player Join, GM, Main Screen)
+- /join?code=XXXX
+- /player?code=XXXX&playerToken=...
+- /gm?code=XXXX
+- /main?code=XXXX
+
+Deliverables
+- Working deployed Base44 app with all screens.
+- Seeded preset avatar library (at least 24 cartoon avatars, Christmas-friendly).
+- QR code generation on main screen.
+- Persistent game history view in GM screen:
+  - per-round results, guesses, deltas, manual adjustments, undo entries
+  - option to export JSON
+
+Acceptance Checklist
+- 10 players can join from different networks and stay synced.
+- Refreshing any client resumes correctly.
+- Timer visuals + edge pulse behave as specified.
+- Exact bonus is configurable and applied correctly.
+- Closest winner tie-break uses earliest submission time.
+- Missing guesses default to $1 and can be overridden by GM.
+- GM can pause, undo, and manually edit balances at any time.
+- Podium/confetti triggers at round 10 and 20.
+- Break/intermission screens at rounds 5, 10, 15, 20 with manual cash add controls.

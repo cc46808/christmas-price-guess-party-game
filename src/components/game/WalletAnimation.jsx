@@ -9,6 +9,16 @@ export default function WalletAnimation({
 }) {
   const isPositive = type === 'deposit' || type === 'bonus';
   
+  // Generate random positions for flying bills
+  const billCount = Math.min(10, Math.abs(amount) / 10);
+  const bills = Array.from({ length: Math.ceil(billCount) }, (_, i) => ({
+    id: i,
+    delay: i * 0.05,
+    rotation: Math.random() * 360,
+    x: (Math.random() - 0.5) * 200,
+    y: isPositive ? -300 : 300
+  }));
+  
   return (
     <AnimatePresence>
       <motion.div
@@ -17,6 +27,36 @@ export default function WalletAnimation({
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
       >
+        {/* Flying bills */}
+        {bills.map(bill => (
+          <motion.div
+            key={bill.id}
+            initial={{ 
+              x: '50vw',
+              y: isPositive ? '-20vh' : '120vh',
+              scale: 0,
+              rotate: 0,
+              opacity: 0
+            }}
+            animate={{
+              x: `calc(50vw + ${bill.x}px)`,
+              y: '50vh',
+              scale: [0, 1, 0.8],
+              rotate: bill.rotation,
+              opacity: [0, 1, 0.8]
+            }}
+            transition={{
+              delay: bill.delay,
+              duration: 0.6,
+              ease: 'easeOut'
+            }}
+            className="fixed text-6xl"
+            style={{ zIndex: 40 }}
+          >
+            💵
+          </motion.div>
+        ))}
+        
         <motion.div
           initial={{ scale: 0, y: -100 }}
           animate={{ scale: 1, y: 0 }}

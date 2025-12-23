@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ConfettiExplosion, ChristmasCard, GlowText } from './GameTheme';
+import { ConfettiExplosion, ChristmasCard, GlowText, MarqueeBorder } from './GameTheme';
 import Leaderboard from './Leaderboard';
 import { Gift, Trophy, Star, Sparkles } from 'lucide-react';
 
@@ -63,7 +63,9 @@ export default function BreakScreen({
   const showConfetti = type === 'wheel-spin' || type === 'finale';
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-red-900 to-green-900 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex flex-col items-center justify-center p-8 relative overflow-hidden">
+      <MarqueeBorder position="top" />
+      <MarqueeBorder position="bottom" />
       <ConfettiExplosion active={showConfetti} />
       
       {/* Decorative lights */}
@@ -71,7 +73,7 @@ export default function BreakScreen({
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
-            className={`w-4 h-4 rounded-full ${['bg-red-500', 'bg-green-500', 'bg-yellow-400', 'bg-blue-500'][i % 4]}`}
+            className={`w-4 h-4 rounded-full ${['bg-[#ff2e63]', 'bg-[#0f3b33]', 'bg-amber-300', 'bg-[#00d1c1]'][i % 4]}`}
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 1, delay: i * 0.1, repeat: Infinity }}
           />

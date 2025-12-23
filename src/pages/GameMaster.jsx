@@ -212,7 +212,8 @@ export default function GameMaster() {
   return <GMControlPanel gameCode={gameCode} />;
 }
 
-function GameSetup({ gameCode, onComplete }) {
+function GameSetup({ gameCode: initialGameCode, onComplete }) {
+  const [gameCode, setGameCode] = useState(initialGameCode);
   const [pin, setPin] = useState('');
   const [totalRounds, setTotalRounds] = useState(20);
   const [exactBonus, setExactBonus] = useState(5);
@@ -393,6 +394,17 @@ function GameSetup({ gameCode, onComplete }) {
                 <CardTitle className="text-white">Game Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-white">Game Code (customize or keep generated)</Label>
+                  <Input
+                    value={gameCode}
+                    onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+                    placeholder="SNOW123"
+                    className="h-12 text-xl font-mono font-bold bg-white/90 border-2"
+                    maxLength={10}
+                  />
+                </div>
+                
                 <div>
                   <Label className="text-white">GM PIN (required to access controls)</Label>
                   <Input

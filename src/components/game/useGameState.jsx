@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { entities } from '@/api/database';
-
-const POLL_INTERVAL = 2000; // Poll every 2 seconds for realtime feel
+import { subscribeToGame } from '@/api/realtime';
 
 export function useGameState(gameCode, role = 'player') {
   const [game, setGame] = useState(null);
@@ -13,7 +12,7 @@ export function useGameState(gameCode, role = 'player') {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [serverTime, setServerTime] = useState(Date.now());
-  const pollRef = useRef(null);
+  const unsubscribeRef = useRef(null);
 
   const fetchGameData = useCallback(async () => {
     if (!gameCode) return;
@@ -65,23 +64,31 @@ export function useGameState(gameCode, role = 'player') {
     }
   }, [gameCode, role]);
 
-  // Initial fetch
+  // Initial fetch and cleanup
   useEffect(() => {
     fetchGameData();
-  }, [fetchGameData]);
-
-  // Polling for realtime updates
-  useEffect(() => {
-    if (!gameCode) return;
-    
-    pollRef.current = setInterval(fetchGameData, POLL_INTERVAL);
-    
     return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
       }
     };
-  }, [gameCode, fetchGameData]);
+  }, [fetchGameData]);
+
+  // Realtime subscription once game is known
+  useEffect(() => {
+    if (!game?.id) return;
+    if (unsubscribeRef.current) unsubscribeRef.current();
+    unsubscribeRef.current = subscribeToGame(game.id, fetchGameData);
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current();
+    };
+  }, [game?.id, fetchGameData]);
+
+  // Local clock to keep time-based calculations current between realtime events
+  useEffect(() => {
+    const intervalId = setInterval(() => setServerTime(Date.now()), 1000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Calculate time remaining for guessing phase
   const getTimeRemaining = useCallback(() => {

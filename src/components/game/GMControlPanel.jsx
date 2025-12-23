@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { entities } from '@/api/database';
+import { subscribeToGame } from '@/api/realtime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SnowfallBackground, ChristmasCard, GlowText } from './GameTheme';
+import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from './GameTheme';
 import PlayerAvatar from './PlayerAvatar';
 import Leaderboard from './Leaderboard';
 import { 
@@ -15,8 +16,6 @@ import {
   Loader2, AlertCircle, Coffee, Trophy
 } from 'lucide-react';
 
-const POLL_INTERVAL = 1500; // Poll every 1.5 seconds
-
 export default function GMControlPanel({ gameCode }) {
   const [game, setGame] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -24,13 +23,18 @@ export default function GMControlPanel({ gameCode }) {
   const [currentRound, setCurrentRound] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [balanceEvents, setBalanceEvents] = useState([]);
+  const [eventLogs, setEventLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
+  const [activeTab, setActiveTab] = useState('controls');
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [showMissingGuessDialog, setShowMissingGuessDialog] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
-  const pollRef = useRef(null);
+  const [missingGuessValue, setMissingGuessValue] = useState('');
+  const timerRef = useRef(null);
+  const unsubscribeRef = useRef(null);
   
   const fetchData = useCallback(async () => {
     try {
@@ -57,14 +61,7 @@ export default function GMControlPanel({ gameCode }) {
           setGuesses(guessesData);
         }
         
-        // Calculate time remaining
-        if (gameData.current_phase === 'guessing' && gameData.guessing_start_time) {
-          const startTime = new Date(gameData.guessing_start_time).getTime();
-          const duration = (gameData.guessing_duration_seconds || 10) * 1000;
-          const elapsed = Date.now() - startTime;
-          const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
-          setTimeRemaining(remaining);
-        } else {
+        if (gameData.current_phase !== 'guessing') {
           setTimeRemaining(null);
         }
       }
@@ -72,6 +69,10 @@ export default function GMControlPanel({ gameCode }) {
       // Fetch balance events
       const events = await entities.BalanceEvent.filter({ game_id: gameData.id });
       setBalanceEvents(events);
+      
+      // Fetch event logs
+      const logs = await entities.GameEventLog.filter({ game_id: gameData.id });
+      setEventLogs(logs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
       
       setLoading(false);
     } catch (err) {
@@ -81,12 +82,41 @@ export default function GMControlPanel({ gameCode }) {
   
   useEffect(() => {
     fetchData();
-    pollRef.current = setInterval(fetchData, POLL_INTERVAL);
-    
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
     };
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!game?.id) return;
+    if (unsubscribeRef.current) unsubscribeRef.current();
+    unsubscribeRef.current = subscribeToGame(game.id, fetchData);
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current();
+    };
+  }, [game?.id, fetchData]);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!game?.current_phase || game.current_phase !== 'guessing' || !game.guessing_start_time) {
+      setTimeRemaining(null);
+      return;
+    }
+    const tick = () => {
+      const startTime = new Date(game.guessing_start_time).getTime();
+      const duration = (game.guessing_duration_seconds || 10) * 1000;
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+      setTimeRemaining(remaining);
+    };
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [game?.current_phase, game?.guessing_start_time, game?.guessing_duration_seconds]);
   
   // Game control actions
   const startGame = async () => {
@@ -240,7 +270,16 @@ export default function GMControlPanel({ gameCode }) {
         const diff = Math.abs(guessValue - actualPrice);
         const delta = -diff;
         
-        // Update player balance
+        // Track cumulative answer time (only if they submitted)
+        let cumulativeTime = player.cumulative_answer_time || 0;
+        if (playerGuess && playerGuess.submitted_at && currentRound.guessing_start_time) {
+          const guessTime = new Date(playerGuess.submitted_at).getTime();
+          const startTime = new Date(currentRound.guessing_start_time).getTime();
+          const answerTime = Math.max(0, (guessTime - startTime) / 1000); // seconds
+          cumulativeTime += answerTime;
+        }
+        
+        // Update player balance and cumulative time
         let newBalance = player.balance + delta;
         
         // Check for exact guess bonus
@@ -258,7 +297,10 @@ export default function GMControlPanel({ gameCode }) {
           });
         }
         
-        await entities.Player.update(player.id, { balance: newBalance });
+        await entities.Player.update(player.id, { 
+          balance: newBalance,
+          cumulative_answer_time: cumulativeTime
+        });
         
         await entities.BalanceEvent.create({
           game_id: game.id,
@@ -469,16 +511,100 @@ export default function GMControlPanel({ gameCode }) {
     setActionLoading(false);
   };
   
+  const exportGameData = async () => {
+    try {
+      // Gather all game data
+      const allGuesses = await entities.Guess.filter({ game_id: game.id });
+      const allEvents = await entities.GameEventLog.filter({ game_id: game.id });
+      
+      const exportData = {
+        game: game,
+        players: players,
+        rounds: rounds,
+        guesses: allGuesses,
+        balanceEvents: balanceEvents,
+        eventLog: allEvents,
+        exportedAt: new Date().toISOString()
+      };
+      
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `game-${game.code}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting game data:', err);
+    }
+  };
+  
+  const overrideMissingGuess = async () => {
+    if (!selectedPlayer || !missingGuessValue || !currentRound) return;
+    
+    setActionLoading(true);
+    try {
+      const value = parseInt(missingGuessValue);
+      
+      // Create or update guess with override
+      const existingGuess = guesses.find(g => g.player_id === selectedPlayer.id);
+      
+      if (existingGuess) {
+        await entities.Guess.update(existingGuess.id, {
+          value: value,
+          submitted_at: new Date().toISOString(),
+          revision: (existingGuess.revision || 1) + 1,
+          is_override: true
+        });
+      } else {
+        await entities.Guess.create({
+          game_id: game.id,
+          round_id: currentRound.id,
+          player_id: selectedPlayer.id,
+          value: value,
+          submitted_at: new Date().toISOString(),
+          revision: 1,
+          is_override: true
+        });
+      }
+      
+      await entities.GameEventLog.create({
+        game_id: game.id,
+        type: 'missing_guess_override',
+        payload: { 
+          playerId: selectedPlayer.id, 
+          roundId: currentRound.id,
+          value: value 
+        }
+      });
+      
+      setShowMissingGuessDialog(false);
+      setSelectedPlayer(null);
+      setMissingGuessValue('');
+      await fetchData();
+    } catch (err) {
+      console.error('Error overriding missing guess:', err);
+    }
+    setActionLoading(false);
+  };
+  
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-white animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center relative">
+        <MarqueeBorder position="top" />
+        <MarqueeBorder position="bottom" />
+        <Loader2 className="w-12 h-12 text-amber-200 animate-spin" />
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-4 relative">
+      <MarqueeBorder position="top" />
+      <MarqueeBorder position="bottom" />
       <SnowfallBackground intensity={15} />
       
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -503,9 +629,25 @@ export default function GMControlPanel({ gameCode }) {
                 {game?.is_paused ? 'Resume' : 'Pause'}
               </Button>
             )}
+            <Button
+              onClick={exportGameData}
+              variant="outline"
+              className="border-green-400 text-green-300"
+            >
+              <History className="w-4 h-4 mr-1" />
+              Export Data
+            </Button>
           </div>
         </div>
         
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
+            <TabsTrigger value="controls">Controls</TabsTrigger>
+            <TabsTrigger value="players">Players</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="controls">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Game Controls */}
           <div className="lg:col-span-2 space-y-4">
@@ -744,6 +886,99 @@ export default function GMControlPanel({ gameCode }) {
             </Card>
           </div>
         </div>
+          </TabsContent>
+          
+          <TabsContent value="players">
+            <Card className="bg-white/10 border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white">Player Management</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {players.map(player => {
+                  const playerGuess = guesses.find(g => g.player_id === player.id);
+                  const hasGuess = !!playerGuess;
+                  
+                  return (
+                    <div key={player.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <PlayerAvatar player={player} size="sm" showStatus />
+                        <div>
+                          <div className="text-white font-bold">{player.name}</div>
+                          <div className="text-sm text-white/60">
+                            Balance: ${player.balance} | 
+                            Time: {(player.cumulative_answer_time || 0).toFixed(1)}s
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPlayer(player);
+                            setShowBalanceDialog(true);
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <DollarSign className="w-4 h-4 mr-1" />
+                          Balance
+                        </Button>
+                        
+                        {currentRound && game.current_phase !== 'lobby' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedPlayer(player);
+                              setMissingGuessValue(hasGuess ? String(playerGuess.value) : '');
+                              setShowMissingGuessDialog(true);
+                            }}
+                            className="border-yellow-400 text-yellow-300"
+                          >
+                            {hasGuess ? 'Edit' : 'Set'} Guess
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="history">
+            <Card className="bg-white/10 border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <History className="w-5 h-5" />
+                  Game Event Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {eventLogs.map((log, i) => (
+                    <div key={i} className="p-3 bg-white/5 rounded text-sm">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-mono text-yellow-300">{log.type}</span>
+                        <span className="text-white/50 text-xs">
+                          {new Date(log.created_date).toLocaleString()}
+                        </span>
+                      </div>
+                      {log.payload && (
+                        <pre className="text-white/70 text-xs mt-1 whitespace-pre-wrap">
+                          {JSON.stringify(log.payload, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  ))}
+                  {eventLogs.length === 0 && (
+                    <div className="text-white/50 text-center py-8">No events yet</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Balance Adjustment Dialog */}
@@ -790,6 +1025,49 @@ export default function GMControlPanel({ gameCode }) {
                 className="flex-1 bg-green-600 hover:bg-green-700"
               >
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Missing Guess Override Dialog */}
+      <Dialog open={showMissingGuessDialog} onOpenChange={setShowMissingGuessDialog}>
+        <DialogContent className="bg-gray-900 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Override Guess: {selectedPlayer?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-white/70 text-sm">
+              Set or override this player's guess for Round {game?.current_round_index}.
+              This will be used for scoring.
+            </div>
+            <div>
+              <label className="text-white text-sm mb-2 block">Guess Value ($)</label>
+              <Input
+                type="number"
+                value={missingGuessValue}
+                onChange={(e) => setMissingGuessValue(e.target.value)}
+                placeholder="Enter dollar amount"
+                className="bg-white/10 text-white border-white/20"
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={() => setShowMissingGuessDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={overrideMissingGuess}
+                disabled={!missingGuessValue || actionLoading}
+                className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Set Guess'}
               </Button>
             </div>
           </div>

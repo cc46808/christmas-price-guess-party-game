@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
+import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from '@/components/game/GameTheme';
 import { ArrowLeft, LogIn, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -52,7 +52,9 @@ export default function JoinGame() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <MarqueeBorder position="top" />
+      <MarqueeBorder position="bottom" />
       <SnowfallBackground intensity={30} />
       
       {/* Back button */}

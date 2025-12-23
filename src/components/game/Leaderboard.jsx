@@ -10,8 +10,14 @@ export default function Leaderboard({
   highlightTop = 0,
   title = 'Leaderboard'
 }) {
-  // Sort by balance descending
-  const sorted = [...players].sort((a, b) => b.balance - a.balance);
+  // Sort by balance descending, then by cumulative_answer_time ascending (faster is better)
+  const sorted = [...players].sort((a, b) => {
+    if (b.balance !== a.balance) {
+      return b.balance - a.balance;
+    }
+    // Tie-break by cumulative answer time (lower is better)
+    return (a.cumulative_answer_time || 0) - (b.cumulative_answer_time || 0);
+  });
   
   if (showPodium && sorted.length >= 3) {
     return <PodiumView players={sorted} highlightTop={highlightTop} />;

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
-import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
+import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import { AVATARS, generateSessionToken } from '@/components/game/avatars';
 import { ArrowLeft, Check, Loader2, RefreshCw } from 'lucide-react';
@@ -121,7 +121,9 @@ export default function PlayerSelect() {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center">
+        <MarqueeBorder position="top" />
+        <MarqueeBorder position="bottom" />
         <Loader2 className="w-12 h-12 text-white animate-spin" />
       </div>
     );
@@ -129,7 +131,7 @@ export default function PlayerSelect() {
   
   if (showAvatarPicker) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 p-6 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-6 relative overflow-hidden">
         <SnowfallBackground intensity={30} />
         
         <div className="relative z-10 max-w-2xl mx-auto">
@@ -169,7 +171,7 @@ export default function PlayerSelect() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-6 relative overflow-hidden">
       <SnowfallBackground intensity={30} />
       
       {/* Header */}

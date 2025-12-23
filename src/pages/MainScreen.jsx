@@ -5,16 +5,15 @@ import { createPageUrl } from '@/utils';
 import { entities } from '@/api/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SnowfallBackground, ChristmasCard, GlowText, PriceTag, ConfettiExplosion } from '@/components/game/GameTheme';
+import { SnowfallBackground, ChristmasCard, GlowText, PriceTag, ConfettiExplosion, MarqueeBorder } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import Timer from '@/components/game/Timer';
 import Leaderboard from '@/components/game/Leaderboard';
 import QRCode from '@/components/game/QRCode';
 import BreakScreen from '@/components/game/BreakScreen';
 import { soundManager } from '@/components/game/SoundManager';
+import { subscribeToGame } from '@/api/realtime';
 import { Loader2, Volume2, Check, X } from 'lucide-react';
-
-const POLL_INTERVAL = 2000; // Poll every 2 seconds
 
 export default function MainScreen() {
   const [gameCode, setGameCode] = useState('');
@@ -27,8 +26,38 @@ export default function MainScreen() {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [lastTimeRemaining, setLastTimeRemaining] = useState(null);
-  const pollRef = useRef(null);
+  const wakeLockRef = useRef(null);
+  const lastTimeRemainingRef = useRef(null);
+  const timerRef = useRef(null);
+  const unsubscribeRef = useRef(null);
+  
+  // Wake Lock to keep screen on
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.log('Wake Lock error:', err);
+      }
+    };
+    
+    requestWakeLock();
+    
+    // Re-request wake lock if visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
+    
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, []);
   
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -67,22 +96,9 @@ export default function MainScreen() {
           setGuesses(guessesData);
         }
         
-        // Calculate time remaining
-        if (gameData.current_phase === 'guessing' && gameData.guessing_start_time) {
-          const startTime = new Date(gameData.guessing_start_time).getTime();
-          const duration = (gameData.guessing_duration_seconds || 10) * 1000;
-          const elapsed = Date.now() - startTime;
-          const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
-          
-          // Play tick sound
-          if (audioEnabled && remaining !== lastTimeRemaining && remaining <= 10 && remaining > 0) {
-            soundManager.play('tick');
-          }
-          
-          setLastTimeRemaining(remaining);
-          setTimeRemaining(remaining);
-        } else {
+        if (gameData.current_phase !== 'guessing') {
           setTimeRemaining(null);
+          lastTimeRemainingRef.current = null;
         }
         
         // Check for confetti triggers (round 10 and 20 results)
@@ -98,19 +114,62 @@ export default function MainScreen() {
     } catch (err) {
       console.error('Error fetching data:', err);
     }
-  }, [gameCode, audioEnabled, lastTimeRemaining]);
+  }, [gameCode, audioEnabled]);
+
+  // Local countdown timer for guessing phase
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!game?.current_phase || game.current_phase !== 'guessing' || !game.guessing_start_time) {
+      setTimeRemaining(null);
+      lastTimeRemainingRef.current = null;
+      return;
+    }
+    const tick = () => {
+      const startTime = new Date(game.guessing_start_time).getTime();
+      const duration = (game.guessing_duration_seconds || 10) * 1000;
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+      if (audioEnabled && remaining !== lastTimeRemainingRef.current && remaining <= 10 && remaining > 0) {
+        soundManager.play('tick');
+      }
+      lastTimeRemainingRef.current = remaining;
+      setTimeRemaining(remaining);
+    };
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [game?.current_phase, game?.guessing_start_time, game?.guessing_duration_seconds, audioEnabled]);
   
   useEffect(() => {
     if (gameCode) {
       setLoading(true);
       fetchData();
-      pollRef.current = setInterval(fetchData, POLL_INTERVAL);
     }
-    
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
     };
   }, [gameCode, fetchData]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!game?.id) return;
+    if (unsubscribeRef.current) unsubscribeRef.current();
+    unsubscribeRef.current = subscribeToGame(game.id, fetchData);
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current();
+    };
+  }, [game?.id, fetchData]);
+  
+  // Play reveal sound when price is revealed
+  useEffect(() => {
+    if (game?.current_phase === 'revealing' && audioEnabled) {
+      soundManager.play('reveal');
+    }
+  }, [game?.current_phase, audioEnabled]);
   
   const handleJoinCode = () => {
     if (inputCode.trim()) {
@@ -126,7 +185,7 @@ export default function MainScreen() {
   // Audio enable overlay
   if (!audioEnabled) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center p-6">
         <SnowfallBackground intensity={40} />
         
         <ChristmasCard className="text-center max-w-md relative z-10">
@@ -171,7 +230,7 @@ export default function MainScreen() {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center">
         <Loader2 className="w-16 h-16 text-white animate-spin" />
       </div>
     );
@@ -200,7 +259,7 @@ export default function MainScreen() {
   // Lobby screen
   if (!game || game.status === 'lobby') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 p-8 relative">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-8 relative">
         <SnowfallBackground intensity={50} />
         <ConfettiExplosion active={showConfetti} />
         
@@ -277,9 +336,11 @@ export default function MainScreen() {
   
   // In-game screen
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 p-6 relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-6 relative">
       <SnowfallBackground intensity={30} />
-      <ConfettiExplosion active={showConfetti} />
+        <MarqueeBorder position="top" />
+        <MarqueeBorder position="bottom" />
+        <ConfettiExplosion active={showConfetti} />
       
       <div className="relative z-10 max-w-7xl mx-auto h-screen flex flex-col">
         {/* Header */}
@@ -404,10 +465,14 @@ export default function MainScreen() {
                     ${player.connection_status === 'disconnected' ? 'opacity-50' : ''}
                   `}
                 >
-                  <PlayerAvatar player={player} size="sm" showName={false} />
+                  <PlayerAvatar player={player} size="sm" showName={false} showStatus />
                   
                   <div className="flex-1">
-                    <div className="text-white font-bold truncate">{player.name}</div>
+                    <div className="text-white font-bold truncate flex items-center gap-2">
+                      {player.name}
+                      {isExact && <span className="text-xs px-2 py-0.5 bg-green-500 rounded-full">🎯 EXACT!</span>}
+                      {isClosest && !isExact && <span className="text-xs px-2 py-0.5 bg-yellow-500 rounded-full">🏆 WINNER</span>}
+                    </div>
                     <div className={`font-mono font-bold text-lg ${player.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       ${player.balance}
                     </div>
@@ -455,6 +520,13 @@ export default function MainScreen() {
           </div>
         </div>
       </div>
+      
+      {/* Wake Lock hint for unsupported browsers */}
+      {!wakeLockRef.current && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 text-white/60 text-sm">
+          💡 Keep this screen open during the game
+        </div>
+      )}
     </div>
   );
 }

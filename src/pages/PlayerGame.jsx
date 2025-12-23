@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { entities } from '@/api/database';
-import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
+import { subscribeToGame } from '@/api/realtime';
+import { SnowfallBackground, ChristmasCard, GlowText, MarqueeBorder } from '@/components/game/GameTheme';
 import PlayerAvatar from '@/components/game/PlayerAvatar';
 import PriceInput from '@/components/game/PriceInput';
 import WalletAnimation, { MiniWalletChange } from '@/components/game/WalletAnimation';
 import { TimerEdgePulse } from '@/components/game/Timer';
 import { Loader2, Volume2, VolumeX, Wallet, Trophy } from 'lucide-react';
-
-const POLL_INTERVAL = 2000; // Poll every 2 seconds
 
 export default function PlayerGame() {
   const [gameCode, setGameCode] = useState('');
@@ -25,8 +24,10 @@ export default function PlayerGame() {
   const [lastBalance, setLastBalance] = useState(null);
   const [roundResult, setRoundResult] = useState(null);
   const [hasSeenStartAnimation, setHasSeenStartAnimation] = useState(false);
-  const pollRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const timerRef = useRef(null);
+  const lastTimeRemainingRef = useRef(null);
+  const unsubscribeRef = useRef(null);
   
   // Wake Lock to prevent screen timeout
   useEffect(() => {
@@ -138,14 +139,9 @@ export default function PlayerGame() {
         }
         
         // Calculate time remaining
-        if (gameData.current_phase === 'guessing' && gameData.guessing_start_time) {
-          const startTime = new Date(gameData.guessing_start_time).getTime();
-          const duration = (gameData.guessing_duration_seconds || 10) * 1000;
-          const elapsed = Date.now() - startTime;
-          const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
-          setTimeRemaining(remaining);
-        } else {
+        if (gameData.current_phase !== 'guessing') {
           setTimeRemaining(null);
+          lastTimeRemainingRef.current = null;
         }
       }
       
@@ -157,12 +153,44 @@ export default function PlayerGame() {
   
   useEffect(() => {
     fetchData();
-    pollRef.current = setInterval(fetchData, POLL_INTERVAL);
-    
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
     };
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!game?.id) return;
+    if (unsubscribeRef.current) unsubscribeRef.current();
+    unsubscribeRef.current = subscribeToGame(game.id, fetchData);
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current();
+    };
+  }, [game?.id, fetchData]);
+
+  // Local countdown timer for guessing phase
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!game?.current_phase || game.current_phase !== 'guessing' || !game.guessing_start_time) {
+      setTimeRemaining(null);
+      lastTimeRemainingRef.current = null;
+      return;
+    }
+    const tick = () => {
+      const startTime = new Date(game.guessing_start_time).getTime();
+      const duration = (game.guessing_duration_seconds || 10) * 1000;
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+      lastTimeRemainingRef.current = remaining;
+      setTimeRemaining(remaining);
+    };
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [game?.current_phase, game?.guessing_start_time, game?.guessing_duration_seconds]);
   
   const handleSubmitGuess = async () => {
     if (!player || !currentRound || submitting) return;
@@ -200,7 +228,7 @@ export default function PlayerGame() {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-white animate-spin" />
       </div>
     );
@@ -213,8 +241,10 @@ export default function PlayerGame() {
   const showUrgentPrompt = isGuessing && timeRemaining === 0 && !hasSubmitted;
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-green-900 to-red-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] relative overflow-hidden">
       <SnowfallBackground intensity={20} />
+      <MarqueeBorder position="top" />
+      <MarqueeBorder position="bottom" />
       
       {/* Timer edge pulse */}
       <TimerEdgePulse seconds={timeRemaining} hasSubmitted={hasSubmitted} />
