@@ -23,13 +23,21 @@ export default function GameMaster() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Check URL for code
+  // Check URL for code and stored auth
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
       setGameCode(code);
-      setMode('authenticate');
+      
+      // Check if GM is already authenticated for this game
+      const storedAuth = sessionStorage.getItem(`gm_auth_${code}`);
+      if (storedAuth) {
+        setGmPin(storedAuth);
+        setMode('control');
+      } else {
+        setMode('authenticate');
+      }
     }
   }, []);
   
@@ -75,6 +83,8 @@ export default function GameMaster() {
       
       if (games.length > 0 && String(games[0].gm_pin) === String(inputPin)) {
         setGmPin(inputPin);
+        // Store auth in session storage
+        sessionStorage.setItem(`gm_auth_${gameCode}`, inputPin);
         window.history.replaceState(null, '', `?code=${gameCode}`);
         setMode('control');
       } else {
