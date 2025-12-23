@@ -24,6 +24,7 @@ export default function PlayerGame() {
   const [lastBalance, setLastBalance] = useState(null);
   const [roundResult, setRoundResult] = useState(null);
   const [hasSeenStartAnimation, setHasSeenStartAnimation] = useState(false);
+  const [submissionTime, setSubmissionTime] = useState(null);
   const wakeLockRef = useRef(null);
   const timerRef = useRef(null);
   const lastTimeRemainingRef = useRef(null);
@@ -128,6 +129,7 @@ export default function PlayerGame() {
           setGuessValue(mid);
           setMyGuess(null);
           setRoundResult(null);
+          setSubmissionTime(null);
         }
         
         // Get my guess for current round
@@ -216,11 +218,21 @@ export default function PlayerGame() {
     setSubmitting(true);
     
     try {
+      const submittedAt = new Date().toISOString();
+      
+      // Calculate submission time
+      if (game.guessing_start_time) {
+        const startTime = new Date(game.guessing_start_time).getTime();
+        const submitTime = new Date(submittedAt).getTime();
+        const timeToSubmit = (submitTime - startTime) / 1000;
+        setSubmissionTime(timeToSubmit);
+      }
+      
       if (myGuess) {
         // Update existing guess
         await entities.Guess.update(myGuess.id, {
           value: guessValue,
-          submitted_at: new Date().toISOString(),
+          submitted_at: submittedAt,
           revision: (myGuess.revision || 1) + 1
         });
       } else {
@@ -230,7 +242,7 @@ export default function PlayerGame() {
           round_id: currentRound.id,
           player_id: player.id,
           value: guessValue,
-          submitted_at: new Date().toISOString(),
+          submitted_at: submittedAt,
           revision: 1,
           is_final: false
         });
@@ -542,6 +554,20 @@ export default function PlayerGame() {
                     max={currentRound.max_guess}
                     submitted={hasSubmitted}
                   />
+                </div>
+              </motion.div>
+            )}
+            
+            {/* Submission time feedback */}
+            {hasSubmitted && submissionTime !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center mb-4 p-3 bg-green-500/20 rounded-xl border border-green-400/50"
+              >
+                <div className="text-green-300 text-sm font-bold">✓ Submitted in</div>
+                <div className="text-green-400 text-2xl font-black font-mono">
+                  {submissionTime.toFixed(1)}s
                 </div>
               </motion.div>
             )}

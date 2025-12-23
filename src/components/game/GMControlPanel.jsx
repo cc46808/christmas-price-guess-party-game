@@ -816,11 +816,19 @@ export default function GMControlPanel({ gameCode }) {
                   <div className="space-y-2">
                     {players.map(player => {
                       const guess = guesses.find(g => g.player_id === player.id);
+                      const submissionTime = guess && game.guessing_start_time 
+                        ? ((new Date(guess.submitted_at) - new Date(game.guessing_start_time)) / 1000).toFixed(1)
+                        : null;
                       return (
                         <div key={player.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
                           <div className="flex items-center gap-3">
                             <PlayerAvatar player={player} size="sm" showName={false} />
-                            <span className="text-white font-medium">{player.name}</span>
+                            <div>
+                              <div className="text-white font-medium">{player.name}</div>
+                              {submissionTime && (
+                                <div className="text-xs text-white/60 font-mono">⏱️ {submissionTime}s</div>
+                              )}
+                            </div>
                           </div>
                           {guess ? (
                             <span className="text-yellow-300 font-bold font-mono text-xl">${guess.value}</span>

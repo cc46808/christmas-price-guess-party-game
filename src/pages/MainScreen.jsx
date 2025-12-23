@@ -489,6 +489,11 @@ export default function MainScreen() {
                     <div className={`font-mono font-bold text-lg ${player.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       ${player.balance}
                     </div>
+                    {playerGuess && game.guessing_start_time && (
+                      <div className="text-xs text-white/60 font-mono">
+                        ⏱️ {((new Date(playerGuess.submitted_at) - new Date(game.guessing_start_time)) / 1000).toFixed(1)}s
+                      </div>
+                    )}
                   </div>
                   
                   {/* Submission status */}
