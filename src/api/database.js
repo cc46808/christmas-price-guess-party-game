@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient';
 
+// Helper function to generate IDs similar to base44 format
+function generateId() {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  return timestamp + randomPart;
+}
+
 // Helper functions to replace base44.entities calls with Supabase queries
 
 export const db = {
@@ -15,9 +22,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('Game')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
@@ -48,9 +56,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('Player')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
@@ -81,9 +90,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('Round')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
@@ -114,9 +124,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('Guess')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
@@ -147,9 +158,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('BalanceEvent')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
@@ -169,9 +181,10 @@ export const db = {
     },
     
     async create(data) {
+      const dataWithId = { id: generateId(), ...data };
       const { data: result, error } = await supabase
         .from('GameEventLog')
-        .insert(data)
+        .insert(dataWithId)
         .select()
         .single();
       if (error) throw error;
