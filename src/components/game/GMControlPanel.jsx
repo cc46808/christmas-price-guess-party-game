@@ -15,7 +15,7 @@ import {
   Loader2, AlertCircle, Coffee, Trophy
 } from 'lucide-react';
 
-const POLL_INTERVAL = 500;
+const POLL_INTERVAL = 1500; // Poll every 1.5 seconds
 
 export default function GMControlPanel({ gameCode }) {
   const [game, setGame] = useState(null);

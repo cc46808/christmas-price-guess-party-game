@@ -14,7 +14,7 @@ import BreakScreen from '@/components/game/BreakScreen';
 import { soundManager } from '@/components/game/SoundManager';
 import { Loader2, Volume2, Check, X } from 'lucide-react';
 
-const POLL_INTERVAL = 400;
+const POLL_INTERVAL = 2000; // Poll every 2 seconds
 
 export default function MainScreen() {
   const [gameCode, setGameCode] = useState('');

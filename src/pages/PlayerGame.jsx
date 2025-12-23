@@ -8,7 +8,7 @@ import WalletAnimation, { MiniWalletChange } from '@/components/game/WalletAnima
 import { TimerEdgePulse } from '@/components/game/Timer';
 import { Loader2, Volume2, VolumeX, Wallet, Trophy } from 'lucide-react';
 
-const POLL_INTERVAL = 400;
+const POLL_INTERVAL = 2000; // Poll every 2 seconds
 
 export default function PlayerGame() {
   const [gameCode, setGameCode] = useState('');

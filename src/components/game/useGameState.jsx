@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { entities } from '@/api/database';
 
-const POLL_INTERVAL = 500; // Poll every 500ms for realtime feel
+const POLL_INTERVAL = 2000; // Poll every 2 seconds for realtime feel
 
 export function useGameState(gameCode, role = 'player') {
   const [game, setGame] = useState(null);
