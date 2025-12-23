@@ -164,7 +164,7 @@ export default function MainScreen() {
     const shouldPollFast = game.current_phase === 'guessing' || 
                            game.current_phase === 'closed' || 
                            game.current_phase === 'revealing';
-    const interval = shouldPollFast ? 2000 : 5000; // 2s during active, 5s otherwise
+    const interval = shouldPollFast ? 1000 : 3000; // 1s during active, 3s otherwise
     
     const pollTimer = setInterval(() => {
       fetchData();
