@@ -175,6 +175,18 @@ export default function PlayerGame() {
     };
   }, [game?.id, fetchData]);
 
+  // Polling fallback when realtime is unavailable
+  useEffect(() => {
+    if (!game?.id) return;
+    
+    // Poll every 3 seconds for updates
+    const pollTimer = setInterval(() => {
+      fetchData();
+    }, 3000);
+    
+    return () => clearInterval(pollTimer);
+  }, [game?.id, fetchData]);
+
   // Local countdown timer for guessing phase
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);

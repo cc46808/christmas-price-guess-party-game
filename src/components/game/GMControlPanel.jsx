@@ -98,6 +98,18 @@ export default function GMControlPanel({ gameCode }) {
     };
   }, [game?.id, fetchData]);
 
+  // Polling fallback when realtime is unavailable
+  useEffect(() => {
+    if (!game?.id) return;
+    
+    // Poll every 2 seconds for GM updates
+    const pollTimer = setInterval(() => {
+      fetchData();
+    }, 2000);
+    
+    return () => clearInterval(pollTimer);
+  }, [game?.id, fetchData]);
+
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!game?.current_phase || game.current_phase !== 'guessing' || !game.guessing_start_time) {
