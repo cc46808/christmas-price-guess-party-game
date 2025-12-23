@@ -62,6 +62,10 @@ export default function WalletAnimation({
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0, y: 100 }}
           transition={{ type: 'spring', damping: 15 }}
+          onAnimationComplete={() => {
+            // Wait a bit to let users see the animation, then auto-close
+            setTimeout(() => onComplete?.(), 2000);
+          }}
           className="flex flex-col items-center gap-6"
         >
           {/* Money flying animation */}
