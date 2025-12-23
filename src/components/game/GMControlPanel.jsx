@@ -1112,7 +1112,7 @@ export default function GMControlPanel({ gameCode }) {
                 value={balanceAmount}
                 onChange={(e) => setBalanceAmount(e.target.value)}
                 placeholder="e.g., 5 or -3"
-                className="bg-white/90 mt-1"
+                className="bg-white/10 mt-1"
               />
               <p className="text-white/50 text-xs mt-1">Use negative numbers to subtract</p>
             </div>

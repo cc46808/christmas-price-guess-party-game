@@ -225,7 +225,7 @@ export default function MainScreen() {
               value={inputCode}
               onChange={(e) => setInputCode(e.target.value.toUpperCase())}
               placeholder="GAME CODE"
-              className="h-14 text-2xl text-center font-mono font-bold bg-white/90 border-4 border-yellow-400 rounded-xl"
+              className="h-14 text-2xl text-center font-mono font-bold bg-white/10 border-4 border-yellow-400 rounded-xl"
             />
             
             <Button

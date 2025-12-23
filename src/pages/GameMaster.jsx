@@ -142,7 +142,7 @@ export default function GameMaster() {
                   setError('');
                 }}
                 placeholder="ENTER GAME CODE"
-                className="h-14 text-xl text-center font-mono font-bold bg-white/90 border-4 border-yellow-400 rounded-xl"
+                className="h-14 text-xl text-center font-mono font-bold bg-white/10 border-4 border-yellow-400 rounded-xl"
               />
               
               {error && <p className="text-red-300 text-center">{error}</p>}
@@ -407,7 +407,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                     value={gameCode}
                     onChange={(e) => setGameCode(e.target.value.toUpperCase())}
                     placeholder="SNOW123"
-                    className="h-12 text-xl font-mono font-bold bg-white/90 border-2"
+                    className="h-12 text-xl font-mono font-bold bg-white/10 border-2"
                     maxLength={10}
                   />
                 </div>
@@ -419,7 +419,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     placeholder="Enter PIN (min 4 characters)"
-                    className="mt-2 bg-white/90"
+                    className="mt-2 bg-white/10"
                   />
                 </div>
                 
@@ -431,7 +431,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                       value={exactBonus}
                       onChange={(e) => setExactBonus(parseInt(e.target.value) || 0)}
                       min={0}
-                      className="mt-2 bg-white/90"
+                      className="mt-2 bg-white/10"
                     />
                   </div>
                   
@@ -442,7 +442,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                       value={defaultMissingGuess}
                       onChange={(e) => setDefaultMissingGuess(parseInt(e.target.value) || 1)}
                       min={1}
-                      className="mt-2 bg-white/90"
+                      className="mt-2 bg-white/10"
                     />
                   </div>
                 </div>
@@ -466,7 +466,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                       value={player.name}
                       onChange={(e) => updatePlayer(i, 'name', e.target.value)}
                       placeholder="Player name"
-                      className="flex-1 bg-white/90"
+                      className="flex-1 bg-white/10"
                     />
                     <Button
                       variant="ghost"
@@ -516,7 +516,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           value={round.item_name}
                           onChange={(e) => updateRound(i, 'item_name', e.target.value)}
                           placeholder="e.g., Teddy Bear"
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                       
@@ -527,7 +527,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           value={round.actual_price}
                           onChange={(e) => updateRound(i, 'actual_price', e.target.value)}
                           placeholder="e.g., 5"
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                       
@@ -537,7 +537,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           value={round.item_photo_url}
                           onChange={(e) => updateRound(i, 'item_photo_url', e.target.value)}
                           placeholder="https://..."
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                       
@@ -547,7 +547,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           value={round.hint_text}
                           onChange={(e) => updateRound(i, 'hint_text', e.target.value)}
                           placeholder="e.g., Popular toy"
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                       
@@ -557,7 +557,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           type="number"
                           value={round.min_guess}
                           onChange={(e) => updateRound(i, 'min_guess', parseInt(e.target.value) || 1)}
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                       
@@ -567,7 +567,7 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
                           type="number"
                           value={round.max_guess}
                           onChange={(e) => updateRound(i, 'max_guess', parseInt(e.target.value) || 10)}
-                          className="mt-1 bg-white/90"
+                          className="mt-1 bg-white/10"
                         />
                       </div>
                     </div>
