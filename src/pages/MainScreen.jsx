@@ -334,8 +334,6 @@ export default function MainScreen() {
   // In-game screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-6 relative">
-        <MarqueeBorder position="top" />
-        <MarqueeBorder position="bottom" />
         <ConfettiExplosion active={showConfetti} />
       
       <div className="relative z-10 max-w-7xl mx-auto h-screen flex flex-col">
