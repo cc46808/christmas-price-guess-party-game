@@ -13,7 +13,7 @@ import Leaderboard from './Leaderboard';
 import { 
   Play, Pause, SkipForward, Eye, CheckCircle, 
   RotateCcw, DollarSign, Users, ListOrdered, History,
-  Loader2, AlertCircle, Coffee, Trophy, Settings, Plus, Trash2, Save
+  Loader2, AlertCircle, Coffee, Trophy, Settings, Plus, Trash2, Save, UserX, Check
 } from 'lucide-react';
 
 export default function GMControlPanel({ gameCode }) {
@@ -1295,6 +1295,39 @@ export default function GMControlPanel({ gameCode }) {
                         placeholder="Player name"
                         className="flex-1 bg-white/10 text-white border-white/20"
                       />
+                      {player.is_selected && (
+                        <div className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded">
+                          <Check className="w-3 h-3" />
+                          Logged In
+                        </div>
+                      )}
+                      {player.id && player.is_selected && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={async () => {
+                            if (confirm(`Unlink ${player.name}? They will need to log in again.`)) {
+                              try {
+                                await entities.Player.update(player.id, {
+                                  is_selected: false,
+                                  session_token: null,
+                                  connection_status: 'disconnected'
+                                });
+                                const updated = [...editPlayers];
+                                updated[i] = { ...updated[i], is_selected: false, session_token: null };
+                                setEditPlayers(updated);
+                              } catch (err) {
+                                console.error('Error unlinking player:', err);
+                                setEditError('Failed to unlink player');
+                              }
+                            }
+                          }}
+                          className="text-orange-400 hover:bg-orange-500/20"
+                          title="Force re-login"
+                        >
+                          <UserX className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
