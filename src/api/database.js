@@ -137,7 +137,7 @@ export const db = {
   
   BalanceEvent: {
     async filter(conditions) {
-      let query = supabase.from('BalanceEvent').select('*').order('created_at', { ascending: true });
+      let query = supabase.from('BalanceEvent').select('*').order('created_date', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -159,7 +159,7 @@ export const db = {
   
   GameEventLog: {
     async filter(conditions) {
-      let query = supabase.from('GameEventLog').select('*').order('created_at', { ascending: true });
+      let query = supabase.from('GameEventLog').select('*').order('created_date', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
