@@ -374,7 +374,7 @@ export default function MainScreen() {
         
         <div className="flex-1 flex gap-6">
           {/* Left side - Item + Timer */}
-          <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="flex-1 flex flex-col items-center justify-start gap-6">
             {/* Item display */}
             {currentRound && (
               <ChristmasCard className="w-full max-w-lg text-center mb-6">
