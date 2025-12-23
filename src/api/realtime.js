@@ -14,7 +14,8 @@ export function subscribeToGame(gameId, onChange) {
       table: 'Game',
       filter: `id=eq.${gameId}`
     },
-    () => {
+    (payload) => {
+      console.log('Realtime update - Game:', payload);
       onChange?.();
     }
   );
@@ -30,7 +31,8 @@ export function subscribeToGame(gameId, onChange) {
         table,
         filter: `game_id=eq.${gameId}`
       },
-      () => {
+      (payload) => {
+        console.log(`Realtime update - ${table}:`, payload);
         onChange?.();
       }
     );
