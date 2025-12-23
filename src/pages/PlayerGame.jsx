@@ -493,17 +493,16 @@ export default function PlayerGame() {
             
             {/* Timer */}
             {timeRemaining !== null && (
-              <motion.div
-                key={timeRemaining}
-                initial={{ scale: 1.2 }}
-                animate={{ scale: 1 }}
-                className={`
-                  text-center text-5xl font-black mb-6
-                  ${timeRemaining <= 3 ? 'text-red-400' : timeRemaining <= 6 ? 'text-yellow-400' : 'text-green-400'}
-                `}
-              >
-                {timeRemaining}s
-              </motion.div>
+              <div className="text-center mb-6 h-16 flex items-center justify-center">
+                <div
+                  className={`
+                    text-5xl font-black
+                    ${timeRemaining <= 3 ? 'text-red-400' : timeRemaining <= 6 ? 'text-yellow-400' : 'text-green-400'}
+                  `}
+                >
+                  {timeRemaining}s
+                </div>
+              </div>
             )}
             
             {/* Urgent prompt */}
