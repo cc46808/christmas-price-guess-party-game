@@ -71,7 +71,7 @@ export const db = {
   
  Round: {
     async filter(conditions) {
-      let query = supabase.from('Round').select('*').order('round_number', { ascending: true });
+      let query = supabase.from('Round').select('*').order('index', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
