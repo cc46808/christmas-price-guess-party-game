@@ -1516,6 +1516,7 @@ export default function GMControlPanel({ gameCode }) {
                         // Update existing
                         await entities.Player.update(player.id, {
                           name: player.name,
+                          avatar_id: player.avatar_id,
                           order: i
                         });
                       } else {
