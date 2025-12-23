@@ -30,6 +30,7 @@ export default function GMControlPanel({ gameCode }) {
   const [activeTab, setActiveTab] = useState('controls');
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [showMissingGuessDialog, setShowMissingGuessDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [missingGuessValue, setMissingGuessValue] = useState('');
@@ -489,6 +490,58 @@ export default function GMControlPanel({ gameCode }) {
     setActionLoading(false);
   };
   
+  const resetGame = async () => {
+    setActionLoading(true);
+    try {
+      // Delete all balance events
+      for (const event of balanceEvents) {
+        await entities.BalanceEvent.delete(event.id);
+      }
+      
+      // Delete all guesses
+      const allGuesses = await entities.Guess.filter({ game_id: game.id });
+      for (const guess of allGuesses) {
+        await entities.Guess.delete(guess.id);
+      }
+      
+      // Reset all rounds to listening status
+      for (const round of rounds) {
+        await entities.Round.update(round.id, {
+          status: 'listening',
+          closest_winner_id: null,
+          exact_guessers: []
+        });
+      }
+      
+      // Reset all players to starting balance
+      for (const player of players) {
+        await entities.Player.update(player.id, {
+          balance: game.starting_balance || 20,
+          cumulative_answer_time: 0
+        });
+      }
+      
+      // Reset game to first round
+      await entities.Game.update(game.id, {
+        current_round_index: 0,
+        current_phase: 'lobby',
+        is_paused: false
+      });
+      
+      await entities.GameEventLog.create({
+        game_id: game.id,
+        type: 'game_reset',
+        payload: { message: 'Game reset to beginning' }
+      });
+      
+      setShowResetDialog(false);
+      await fetchData();
+    } catch (err) {
+      console.error('Error resetting game:', err);
+    }
+    setActionLoading(false);
+  };
+  
   const adjustBalance = async () => {
     if (!selectedPlayer || !balanceAmount) return;
     
@@ -802,6 +855,15 @@ export default function GMControlPanel({ gameCode }) {
                       <RotateCcw className="w-5 h-5 mr-2" /> Undo Round
                     </Button>
                   )}
+                  
+                  <Button
+                    onClick={() => setShowResetDialog(true)}
+                    disabled={actionLoading}
+                    variant="outline"
+                    className="h-14 border-orange-400 text-orange-300"
+                  >
+                    <RotateCcw className="w-5 h-5 mr-2" /> Reset Game
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1083,6 +1145,50 @@ export default function GMControlPanel({ gameCode }) {
                 className="flex-1 bg-yellow-600 hover:bg-yellow-700"
               >
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Set Guess'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Reset Game Confirmation Dialog */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent className="bg-[#0f2838] border-2 border-orange-400">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <AlertCircle className="w-6 h-6 text-orange-400" />
+              Reset Game?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-white/80">
+              This will reset the game back to the beginning:
+            </p>
+            <ul className="text-white/70 space-y-2 list-disc list-inside">
+              <li>All players reset to starting balance</li>
+              <li>All guesses and balance events deleted</li>
+              <li>Game returns to lobby (Round 0)</li>
+              <li>All rounds reset to unplayed status</li>
+            </ul>
+            <p className="text-orange-300 font-bold">
+              ⚠️ This action cannot be undone!
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowResetDialog(false)}
+                variant="outline"
+                className="flex-1 border-white/20 text-white"
+                disabled={actionLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={resetGame}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                disabled={actionLoading}
+              >
+                {actionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Reset Game
               </Button>
             </div>
           </div>
