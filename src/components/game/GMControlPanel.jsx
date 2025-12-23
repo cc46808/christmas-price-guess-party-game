@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChristmasCard, GlowText } from './GameTheme';
 import PlayerAvatar from './PlayerAvatar';
 import Leaderboard from './Leaderboard';
+import { AVATARS } from './avatars';
 import { 
   Play, Pause, SkipForward, Eye, CheckCircle, 
   RotateCcw, DollarSign, Users, ListOrdered, History,
@@ -32,7 +33,10 @@ export default function GMControlPanel({ gameCode }) {
   const [showMissingGuessDialog, setShowMissingGuessDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showUnlinkDialog, setShowUnlinkDialog] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [missingGuessValue, setMissingGuessValue] = useState('');
   const [editTab, setEditTab] = useState('settings');
@@ -1285,6 +1289,19 @@ export default function GMControlPanel({ gameCode }) {
                   {editPlayers.map((player, i) => (
                     <div key={i} className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
                       <span className="text-white/50 w-6">{i + 1}.</span>
+                      
+                      {/* Avatar Display */}
+                      <button
+                        onClick={() => {
+                          setSelectedPlayerIndex(i);
+                          setShowAvatarPicker(true);
+                        }}
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-2xl hover:ring-2 hover:ring-yellow-400 transition-all cursor-pointer bg-white/10"
+                        title="Change avatar"
+                      >
+                        {AVATARS.find(a => a.id === player.avatar_id)?.emoji || '🎅'}
+                      </button>
+                      
                       <Input
                         value={player.name}
                         onChange={(e) => {
@@ -1305,22 +1322,10 @@ export default function GMControlPanel({ gameCode }) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={async () => {
-                            if (confirm(`Unlink ${player.name}? They will need to log in again.`)) {
-                              try {
-                                await entities.Player.update(player.id, {
-                                  is_selected: false,
-                                  session_token: null,
-                                  connection_status: 'disconnected'
-                                });
-                                const updated = [...editPlayers];
-                                updated[i] = { ...updated[i], is_selected: false, session_token: null };
-                                setEditPlayers(updated);
-                              } catch (err) {
-                                console.error('Error unlinking player:', err);
-                                setEditError('Failed to unlink player');
-                              }
-                            }
+                          onClick={() => {
+                            setSelectedPlayer(player);
+                            setSelectedPlayerIndex(i);
+                            setShowUnlinkDialog(true);
                           }}
                           className="text-orange-400 hover:bg-orange-500/20"
                           title="Force re-login"
@@ -1595,6 +1600,102 @@ export default function GMControlPanel({ gameCode }) {
                 Save Changes
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Unlink Player Confirmation Dialog */}
+      <Dialog open={showUnlinkDialog} onOpenChange={setShowUnlinkDialog}>
+        <DialogContent className="bg-[#0f2838] border-2 border-orange-400">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <UserX className="w-6 h-6 text-orange-400" />
+              Force Player Re-login?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-white/80">
+              Unlink <span className="font-bold text-white">{selectedPlayer?.name}</span>?
+            </p>
+            <p className="text-white/70 text-sm">
+              This will log them out and they'll need to select their name again to rejoin the game.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowUnlinkDialog(false)}
+                variant="outline"
+                className="flex-1 border-white/20 text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await entities.Player.update(selectedPlayer.id, {
+                      is_selected: false,
+                      session_token: null,
+                      connection_status: 'disconnected'
+                    });
+                    const updated = [...editPlayers];
+                    updated[selectedPlayerIndex] = { 
+                      ...updated[selectedPlayerIndex], 
+                      is_selected: false, 
+                      session_token: null 
+                    };
+                    setEditPlayers(updated);
+                    setShowUnlinkDialog(false);
+                  } catch (err) {
+                    console.error('Error unlinking player:', err);
+                    setEditError('Failed to unlink player');
+                  }
+                }}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Unlink Player
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Avatar Picker Dialog */}
+      <Dialog open={showAvatarPicker} onOpenChange={setShowAvatarPicker}>
+        <DialogContent className="bg-[#0f2838] border-2 border-yellow-400 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl">
+              Choose Avatar
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-6 gap-3">
+            {AVATARS.map((avatar) => (
+              <button
+                key={avatar.id}
+                onClick={() => {
+                  const updated = [...editPlayers];
+                  updated[selectedPlayerIndex] = { 
+                    ...updated[selectedPlayerIndex], 
+                    avatar_id: avatar.id 
+                  };
+                  setEditPlayers(updated);
+                  setShowAvatarPicker(false);
+                }}
+                className={`
+                  w-full aspect-square rounded-xl flex flex-col items-center justify-center
+                  transition-all hover:scale-110 hover:shadow-lg
+                  ${avatar.bg} border-4
+                  ${editPlayers[selectedPlayerIndex]?.avatar_id === avatar.id 
+                    ? 'border-yellow-400 ring-4 ring-yellow-400/50' 
+                    : 'border-white/20 hover:border-yellow-400'
+                  }
+                `}
+                title={avatar.name}
+              >
+                <span className="text-4xl mb-1">{avatar.emoji}</span>
+                <span className="text-xs text-white/80 font-medium text-center px-1">
+                  {avatar.name}
+                </span>
+              </button>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
