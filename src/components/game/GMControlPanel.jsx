@@ -13,7 +13,7 @@ import Leaderboard from './Leaderboard';
 import { 
   Play, Pause, SkipForward, Eye, CheckCircle, 
   RotateCcw, DollarSign, Users, ListOrdered, History,
-  Loader2, AlertCircle, Coffee, Trophy
+  Loader2, AlertCircle, Coffee, Trophy, Settings, Plus, Trash2, Save
 } from 'lucide-react';
 
 export default function GMControlPanel({ gameCode }) {
@@ -31,9 +31,17 @@ export default function GMControlPanel({ gameCode }) {
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [showMissingGuessDialog, setShowMissingGuessDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [missingGuessValue, setMissingGuessValue] = useState('');
+  const [editTab, setEditTab] = useState('settings');
+  const [editExactBonus, setEditExactBonus] = useState(5);
+  const [editDefaultMissing, setEditDefaultMissing] = useState(1);
+  const [editPlayers, setEditPlayers] = useState([]);
+  const [editRounds, setEditRounds] = useState([]);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
   const timerRef = useRef(null);
   const unsubscribeRef = useRef(null);
   
@@ -698,6 +706,22 @@ export default function GMControlPanel({ gameCode }) {
               <History className="w-4 h-4 mr-1" />
               Export Data
             </Button>
+            <Button
+              onClick={() => {
+                setEditExactBonus(game?.exact_bonus_amount || 5);
+                setEditDefaultMissing(game?.default_missing_guess_value || 1);
+                setEditPlayers([...players]);
+                setEditRounds([...rounds]);
+                setEditTab('settings');
+                setEditError('');
+                setShowEditDialog(true);
+              }}
+              variant="outline"
+              className="border-blue-400 text-blue-300"
+            >
+              <Settings className="w-4 h-4 mr-1" />
+              Edit Game
+            </Button>
           </div>
         </div>
         
@@ -1190,6 +1214,352 @@ export default function GMControlPanel({ gameCode }) {
               >
                 {actionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Reset Game
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Game Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-[#0f2838] border-2 border-blue-400 max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white text-2xl flex items-center gap-2">
+              <Settings className="w-6 h-6 text-blue-400" />
+              Edit Game
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {editError && (
+              <div className="bg-red-500/20 border border-red-500 text-red-200 p-3 rounded-lg">
+                {editError}
+              </div>
+            )}
+            
+            <Tabs value={editTab} onValueChange={setEditTab}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="players">Players</TabsTrigger>
+                <TabsTrigger value="rounds">Rounds</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="settings">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white text-sm block mb-2">Exact Guess Bonus ($)</label>
+                      <Input
+                        type="number"
+                        value={editExactBonus}
+                        onChange={(e) => setEditExactBonus(parseInt(e.target.value) || 0)}
+                        min={0}
+                        className="bg-white/10 text-white border-white/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white text-sm block mb-2">Default Missing Guess ($)</label>
+                      <Input
+                        type="number"
+                        value={editDefaultMissing}
+                        onChange={(e) => setEditDefaultMissing(parseInt(e.target.value) || 1)}
+                        min={1}
+                        className="bg-white/10 text-white border-white/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="players">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-white font-medium">Manage Players</span>
+                    <Button
+                      onClick={() => setEditPlayers([...editPlayers, { name: '', avatar_id: 'santa', isNew: true }])}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Player
+                    </Button>
+                  </div>
+                  {editPlayers.map((player, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
+                      <span className="text-white/50 w-6">{i + 1}.</span>
+                      <Input
+                        value={player.name}
+                        onChange={(e) => {
+                          const updated = [...editPlayers];
+                          updated[i] = { ...updated[i], name: e.target.value };
+                          setEditPlayers(updated);
+                        }}
+                        placeholder="Player name"
+                        className="flex-1 bg-white/10 text-white border-white/20"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditPlayers(editPlayers.filter((_, idx) => idx !== i))}
+                        className="text-red-400 hover:bg-red-500/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {editPlayers.length === 0 && (
+                    <p className="text-white/50 text-center py-8">No players</p>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="rounds">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-white font-medium">Manage Rounds</span>
+                    <Button
+                      onClick={() => setEditRounds([...editRounds, {
+                        item_name: '',
+                        item_photo_url: '',
+                        hint_text: '',
+                        min_guess: 1,
+                        max_guess: 10,
+                        actual_price: '',
+                        show_photo_to_players: true,
+                        show_hint_to_players: true,
+                        isNew: true
+                      }])}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Round
+                    </Button>
+                  </div>
+                  {editRounds.map((round, i) => (
+                    <div key={i} className="bg-white/5 p-4 rounded-lg space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-yellow-300 font-bold">Round {i + 1}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditRounds(editRounds.filter((_, idx) => idx !== i))}
+                          className="text-red-400 hover:bg-red-500/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Item Name *</label>
+                          <Input
+                            value={round.item_name}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], item_name: e.target.value };
+                              setEditRounds(updated);
+                            }}
+                            placeholder="e.g., Teddy Bear"
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Actual Price ($) *</label>
+                          <Input
+                            type="number"
+                            value={round.actual_price}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], actual_price: e.target.value };
+                              setEditRounds(updated);
+                            }}
+                            placeholder="e.g., 5"
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Photo URL</label>
+                          <Input
+                            value={round.item_photo_url}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], item_photo_url: e.target.value };
+                              setEditRounds(updated);
+                            }}
+                            placeholder="https://..."
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Hint</label>
+                          <Input
+                            value={round.hint_text}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], hint_text: e.target.value };
+                              setEditRounds(updated);
+                            }}
+                            placeholder="e.g., Popular toy"
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Min Guess ($)</label>
+                          <Input
+                            type="number"
+                            value={round.min_guess}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], min_guess: parseInt(e.target.value) || 1 };
+                              setEditRounds(updated);
+                            }}
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Max Guess ($)</label>
+                          <Input
+                            type="number"
+                            value={round.max_guess}
+                            onChange={(e) => {
+                              const updated = [...editRounds];
+                              updated[i] = { ...updated[i], max_guess: parseInt(e.target.value) || 10 };
+                              setEditRounds(updated);
+                            }}
+                            className="bg-white/10 text-white border-white/20 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {editRounds.length === 0 && (
+                    <p className="text-white/50 text-center py-8">No rounds</p>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="flex gap-3 pt-4 border-t border-white/20">
+              <Button
+                onClick={() => setShowEditDialog(false)}
+                variant="outline"
+                className="flex-1 border-white/20 text-white"
+                disabled={editSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setEditSaving(true);
+                  setEditError('');
+                  
+                  try {
+                    // Update game settings
+                    await entities.Game.update(game.id, {
+                      exact_bonus_amount: editExactBonus,
+                      default_missing_guess_value: editDefaultMissing,
+                      total_rounds: editRounds.filter(r => r.item_name.trim() && r.actual_price).length
+                    });
+                    
+                    // Update/create/delete players
+                    const existingPlayerIds = players.map(p => p.id);
+                    const editPlayerIds = editPlayers.filter(p => p.id).map(p => p.id);
+                    
+                    // Delete removed players
+                    for (const playerId of existingPlayerIds) {
+                      if (!editPlayerIds.includes(playerId)) {
+                        await entities.Player.delete(playerId);
+                      }
+                    }
+                    
+                    // Update/create players
+                    for (let i = 0; i < editPlayers.length; i++) {
+                      const player = editPlayers[i];
+                      if (!player.name.trim()) continue;
+                      
+                      if (player.id) {
+                        // Update existing
+                        await entities.Player.update(player.id, {
+                          name: player.name,
+                          order: i
+                        });
+                      } else {
+                        // Create new
+                        await entities.Player.create({
+                          game_id: game.id,
+                          name: player.name,
+                          avatar_id: player.avatar_id || 'santa',
+                          balance: 0,
+                          is_selected: false,
+                          connection_status: 'disconnected',
+                          order: i
+                        });
+                      }
+                    }
+                    
+                    // Update/create/delete rounds
+                    const existingRoundIds = rounds.map(r => r.id);
+                    const editRoundIds = editRounds.filter(r => r.id).map(r => r.id);
+                    
+                    // Delete removed rounds
+                    for (const roundId of existingRoundIds) {
+                      if (!editRoundIds.includes(roundId)) {
+                        await entities.Round.delete(roundId);
+                      }
+                    }
+                    
+                    // Update/create rounds
+                    for (let i = 0; i < editRounds.length; i++) {
+                      const round = editRounds[i];
+                      if (!round.item_name.trim() || !round.actual_price) continue;
+                      
+                      const roundData = {
+                        index: i + 1,
+                        item_name: round.item_name,
+                        item_photo_url: round.item_photo_url || '',
+                        hint_text: round.hint_text || '',
+                        min_guess: round.min_guess || 1,
+                        max_guess: round.max_guess || 10,
+                        actual_price: parseInt(round.actual_price),
+                        show_photo_to_players: round.show_photo_to_players !== false,
+                        show_hint_to_players: round.show_hint_to_players !== false
+                      };
+                      
+                      if (round.id) {
+                        // Update existing
+                        await entities.Round.update(round.id, roundData);
+                      } else {
+                        // Create new
+                        await entities.Round.create({
+                          game_id: game.id,
+                          ...roundData,
+                          status: 'pending'
+                        });
+                      }
+                    }
+                    
+                    // Log the edit
+                    await entities.GameEventLog.create({
+                      game_id: game.id,
+                      type: 'game_edited',
+                      payload: { 
+                        players: editPlayers.filter(p => p.name.trim()).length,
+                        rounds: editRounds.filter(r => r.item_name.trim() && r.actual_price).length
+                      }
+                    });
+                    
+                    setShowEditDialog(false);
+                    await fetchData();
+                  } catch (err) {
+                    console.error('Error updating game:', err);
+                    setEditError('Failed to update game. Please try again.');
+                  }
+                  
+                  setEditSaving(false);
+                }}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                disabled={editSaving}
+              >
+                {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
               </Button>
             </div>
           </div>

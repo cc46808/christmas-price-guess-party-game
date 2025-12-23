@@ -75,6 +75,15 @@ export const db = {
         .single();
       if (error) throw error;
       return result;
+    },
+    
+    async delete(id) {
+      const { error } = await supabase
+        .from('Player')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return true;
     }
   },
   
@@ -109,6 +118,15 @@ export const db = {
         .single();
       if (error) throw error;
       return result;
+    },
+    
+    async delete(id) {
+      const { error } = await supabase
+        .from('Round')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return true;
     }
   },
   
