@@ -523,6 +523,7 @@ export default function GMControlPanel({ gameCode }) {
       
       // Reset game to first round
       await entities.Game.update(game.id, {
+        status: 'lobby',
         current_round_index: 0,
         current_phase: 'lobby',
         is_paused: false
