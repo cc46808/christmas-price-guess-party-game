@@ -100,21 +100,13 @@ export default function MainScreen() {
           setTimeRemaining(null);
           lastTimeRemainingRef.current = null;
         }
-        
-        // Check for confetti triggers (round 10 and 20 results)
-        if ((gameData.current_round_index === 10 || gameData.current_round_index === 20) && 
-            gameData.current_phase === 'break') {
-          setShowConfetti(true);
-          if (audioEnabled) soundManager.play('success');
-          setTimeout(() => setShowConfetti(false), 5000);
-        }
       }
       
       setLoading(false);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
-  }, [gameCode, audioEnabled]);
+  }, [gameCode]);
 
   // Local countdown timer for guessing phase
   useEffect(() => {
@@ -163,6 +155,16 @@ export default function MainScreen() {
       if (unsubscribeRef.current) unsubscribeRef.current();
     };
   }, [game?.id, fetchData]);
+  
+  // Check for confetti triggers (round 10 and 20 results)
+  useEffect(() => {
+    if ((game?.current_round_index === 10 || game?.current_round_index === 20) && 
+        game?.current_phase === 'break') {
+      setShowConfetti(true);
+      if (audioEnabled) soundManager.play('success');
+      setTimeout(() => setShowConfetti(false), 5000);
+    }
+  }, [game?.current_round_index, game?.current_phase, audioEnabled]);
   
   // Play reveal sound when price is revealed
   useEffect(() => {
