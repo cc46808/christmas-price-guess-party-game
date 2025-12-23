@@ -93,7 +93,7 @@ export default function JoinGame() {
                 setError('');
               }}
               placeholder="GAME CODE"
-              className="h-16 text-3xl text-center font-mono font-bold tracking-widest bg-white/90 border-4 border-yellow-400 rounded-xl"
+              className="h-16 text-3xl text-center font-mono font-bold tracking-widest bg-white/10 border-4 border-yellow-400 rounded-xl"
               maxLength={10}
             />
             
