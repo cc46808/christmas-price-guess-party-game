@@ -3,9 +3,9 @@ import { supabase } from './supabaseClient';
 // Helper functions to replace base44.entities calls with Supabase queries
 
 export const db = {
-  games: {
+  Game: {
     async filter(conditions) {
-      let query = supabase.from('games').select('*');
+      let query = supabase.from('Game').select('*');
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -16,7 +16,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('games')
+        .from('Game')
         .insert(data)
         .select()
         .single();
@@ -26,7 +26,7 @@ export const db = {
     
     async update(id, data) {
       const { data: result, error } = await supabase
-        .from('games')
+        .from('Game')
         .update(data)
         .eq('id', id)
         .select()
@@ -36,9 +36,9 @@ export const db = {
     }
   },
   
-  players: {
+  Player: {
     async filter(conditions) {
-      let query = supabase.from('players').select('*');
+      let query = supabase.from('Player').select('*');
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -49,7 +49,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('players')
+        .from('Player')
         .insert(data)
         .select()
         .single();
@@ -59,7 +59,7 @@ export const db = {
     
     async update(id, data) {
       const { data: result, error } = await supabase
-        .from('players')
+        .from('Player')
         .update(data)
         .eq('id', id)
         .select()
@@ -69,9 +69,9 @@ export const db = {
     }
   },
   
-  rounds: {
+ Round: {
     async filter(conditions) {
-      let query = supabase.from('rounds').select('*').order('round_number', { ascending: true });
+      let query = supabase.from('Round').select('*').order('round_number', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -82,7 +82,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('rounds')
+        .from('Round')
         .insert(data)
         .select()
         .single();
@@ -92,7 +92,7 @@ export const db = {
     
     async update(id, data) {
       const { data: result, error } = await supabase
-        .from('rounds')
+        .from('Round')
         .update(data)
         .eq('id', id)
         .select()
@@ -102,9 +102,9 @@ export const db = {
     }
   },
   
-  guesses: {
+  Guess: {
     async filter(conditions) {
-      let query = supabase.from('guesses').select('*');
+      let query = supabase.from('Guess').select('*');
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -115,7 +115,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('guesses')
+        .from('Guess')
         .insert(data)
         .select()
         .single();
@@ -125,7 +125,7 @@ export const db = {
     
     async update(id, data) {
       const { data: result, error } = await supabase
-        .from('guesses')
+        .from('Guess')
         .update(data)
         .eq('id', id)
         .select()
@@ -135,9 +135,9 @@ export const db = {
     }
   },
   
-  balanceEvents: {
+  BalanceEvent: {
     async filter(conditions) {
-      let query = supabase.from('balance_events').select('*').order('created_at', { ascending: true });
+      let query = supabase.from('BalanceEvent').select('*').order('created_at', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -148,7 +148,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('balance_events')
+        .from('BalanceEvent')
         .insert(data)
         .select()
         .single();
@@ -157,9 +157,9 @@ export const db = {
     }
   },
   
-  gameEventLogs: {
+  GameEventLog: {
     async filter(conditions) {
-      let query = supabase.from('game_event_logs').select('*').order('created_at', { ascending: true });
+      let query = supabase.from('GameEventLog').select('*').order('created_at', { ascending: true });
       Object.entries(conditions).forEach(([key, value]) => {
         query = query.eq(key, value);
       });
@@ -170,7 +170,7 @@ export const db = {
     
     async create(data) {
       const { data: result, error } = await supabase
-        .from('game_event_logs')
+        .from('GameEventLog')
         .insert(data)
         .select()
         .single();
@@ -182,10 +182,10 @@ export const db = {
 
 // Backward compatibility - map old base44 entity names to new structure
 export const entities = {
-  Game: db.games,
-  Player: db.players,
-  Round: db.rounds,
-  Guess: db.guesses,
-  BalanceEvent: db.balanceEvents,
-  GameEventLog: db.gameEventLogs
+  Game: db.Game,
+  Player: db.Player,
+  Round: db.Round,
+  Guess: db.Guess,
+  BalanceEvent: db.BalanceEvent,
+  GameEventLog: db.GameEventLog
 };

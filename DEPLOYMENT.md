@@ -11,12 +11,12 @@ This project has been successfully migrated from base44 to Supabase and is ready
 ### 1. Database Setup (Supabase)
 
 Your Supabase database schema is already configured. The tables include:
-- `games` - Game sessions
-- `players` - Player information
-- `rounds` - Game rounds with items to guess
-- `guesses` - Player guesses for each round
-- `balance_events` - Player balance transaction history
-- `game_event_logs` - Game event tracking
+- `Game` - Game sessions
+- `Player` - Player information
+- `Round` - Game rounds with items to guess
+- `Guess` - Player guesses for each round
+- `BalanceEvent` - Player balance transaction history
+- `GameEventLogs` - Game event tracking
 
 ### 2. Environment Variables
 
