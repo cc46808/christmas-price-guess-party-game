@@ -365,7 +365,7 @@ export default function MainScreen() {
             </span>
           </div>
           
-          <div className="text-right">
+          <div className="hidden text-right">
             <span className="text-4xl font-black text-yellow-300">
               {gameCode}
             </span>

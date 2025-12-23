@@ -64,7 +64,7 @@ export default function Timer({
       </AnimatePresence>
       
       {/* Progress ring */}
-      <svg className="absolute" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+      <svg className="hidden absolute" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
         <circle
           cx="50%"
           cy="50%"
