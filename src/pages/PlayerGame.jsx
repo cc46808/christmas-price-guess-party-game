@@ -28,6 +28,8 @@ export default function PlayerGame() {
   const timerRef = useRef(null);
   const lastTimeRemainingRef = useRef(null);
   const unsubscribeRef = useRef(null);
+  const prevRoundIdRef = useRef(null);
+  const hasSeenStartRef = useRef(false);
   
   // Wake Lock to prevent screen timeout
   useEffect(() => {
@@ -76,7 +78,6 @@ export default function PlayerGame() {
       if (games.length === 0) return;
       
       const gameData = games[0];
-      const prevGame = game;
       setGame(gameData);
       
       // Get player data
@@ -91,24 +92,26 @@ export default function PlayerGame() {
         });
         
         // Check for game start (first time getting $20)
-        if (!hasSeenStartAnimation && gameData.status === 'in_progress' && myPlayer.balance === 20 && lastBalance === null) {
+        if (!hasSeenStartRef.current && gameData.status === 'in_progress' && myPlayer.balance === 20) {
           setShowWalletAnimation({ amount: 20, type: 'deposit' });
           setHasSeenStartAnimation(true);
+          hasSeenStartRef.current = true;
         }
         
         // Track balance changes
-        if (lastBalance !== null && myPlayer.balance !== lastBalance) {
-          const diff = myPlayer.balance - lastBalance;
-          if (diff !== 0 && !showWalletAnimation) {
-            // Small inline animation for balance changes after initial
-            setRoundResult({
-              delta: diff,
-              newBalance: myPlayer.balance
-            });
+        setLastBalance(prevBalance => {
+          if (prevBalance !== null && myPlayer.balance !== prevBalance) {
+            const diff = myPlayer.balance - prevBalance;
+            if (diff !== 0) {
+              setRoundResult({
+                delta: diff,
+                newBalance: myPlayer.balance
+              });
+            }
           }
-        }
+          return myPlayer.balance;
+        });
         
-        setLastBalance(myPlayer.balance);
         setPlayer(myPlayer);
       }
       
@@ -119,7 +122,8 @@ export default function PlayerGame() {
         setCurrentRound(current);
         
         // Reset guess value when new round starts
-        if (current && (!currentRound || currentRound.id !== current.id)) {
+        if (current && prevRoundIdRef.current !== current.id) {
+          prevRoundIdRef.current = current.id;
           const mid = Math.floor((current.min_guess + current.max_guess) / 2);
           setGuessValue(mid);
           setMyGuess(null);
@@ -149,16 +153,18 @@ export default function PlayerGame() {
     } catch (err) {
       console.error('Error fetching data:', err);
     }
-  }, [gameCode, playerToken, game, currentRound, lastBalance, hasSeenStartAnimation, showWalletAnimation]);
+  }, [gameCode, playerToken]);
   
   useEffect(() => {
-    fetchData();
+    if (gameCode && playerToken) {
+      fetchData();
+    }
     return () => {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
       }
     };
-  }, [fetchData]);
+  }, [gameCode, playerToken, fetchData]);
 
   useEffect(() => {
     if (!game?.id) return;
