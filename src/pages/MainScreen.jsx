@@ -406,7 +406,23 @@ export default function MainScreen() {
             
             {/* Timer */}
             {game.current_phase === 'guessing' && timeRemaining !== null && (
-              <Timer seconds={timeRemaining} size="xl" playSound={audioEnabled} />
+              <div className="flex flex-col items-center">
+                <Timer seconds={timeRemaining} size="xl" playSound={audioEnabled} />
+                {timeRemaining === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 text-center"
+                  >
+                    <div className="text-5xl font-black text-red-400 mb-2">
+                      ⏰ TIME'S UP!
+                    </div>
+                    <div className="text-2xl font-bold text-yellow-300">
+                      Lock in your guesses NOW!
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             )}
             
             {/* Listening state */}
