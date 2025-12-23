@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SnowfallBackground, ChristmasCard, GlowText } from '@/components/game/GameTheme';
+import { ChristmasCard, GlowText } from '@/components/game/GameTheme';
 import { generateGameCode } from '@/components/game/avatars';
 import { 
   ArrowLeft, Plus, Trash2, Play, Settings, Users, 
@@ -90,7 +90,6 @@ export default function GameMaster() {
   if (mode === 'select') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 p-6 relative">
-        <SnowfallBackground intensity={30} />
         
         <Link to={createPageUrl('Home')} className="absolute top-4 left-4 z-20">
           <Button variant="ghost" className="text-white hover:bg-white/10">
@@ -156,7 +155,6 @@ export default function GameMaster() {
   if (mode === 'authenticate') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 p-6 relative">
-        <SnowfallBackground intensity={30} />
         
         <div className="relative z-10 max-w-md mx-auto pt-20">
           <ChristmasCard>
@@ -347,7 +345,6 @@ function GameSetup({ gameCode: initialGameCode, onComplete }) {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 p-6 relative">
-      <SnowfallBackground intensity={20} />
       
       <div className="relative z-10 max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">

@@ -334,7 +334,6 @@ export default function MainScreen() {
   // In-game screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0b1c2c] via-[#0f3b33] to-[#0b1c2c] p-6 relative">
-      <SnowfallBackground intensity={30} />
         <MarqueeBorder position="top" />
         <MarqueeBorder position="bottom" />
         <ConfettiExplosion active={showConfetti} />
