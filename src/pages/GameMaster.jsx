@@ -62,9 +62,18 @@ export default function GameMaster() {
   
   const handleAuthenticate = async () => {
     setLoading(true);
+    setError('');
     try {
       const games = await entities.Game.filter({ code: gameCode });
-      if (games.length > 0 && games[0].gm_pin === inputPin) {
+      console.log('Found games:', games);
+      console.log('Input PIN:', inputPin, 'Type:', typeof inputPin);
+      if (games.length > 0) {
+        console.log('Stored PIN:', games[0].gm_pin, 'Type:', typeof games[0].gm_pin);
+        console.log('PIN match:', games[0].gm_pin === inputPin);
+        console.log('PIN match (string):', String(games[0].gm_pin) === String(inputPin));
+      }
+      
+      if (games.length > 0 && String(games[0].gm_pin) === String(inputPin)) {
         setGmPin(inputPin);
         window.history.replaceState(null, '', `?code=${gameCode}`);
         setMode('control');
@@ -72,6 +81,7 @@ export default function GameMaster() {
         setError('Invalid PIN');
       }
     } catch (err) {
+      console.error('Authentication error:', err);
       setError('Error authenticating');
     }
     setLoading(false);
