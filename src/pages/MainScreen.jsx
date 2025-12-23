@@ -156,6 +156,23 @@ export default function MainScreen() {
     };
   }, [game?.id, fetchData]);
   
+  // Polling fallback for when realtime is not available (especially during guessing phase)
+  useEffect(() => {
+    if (!game?.id) return;
+    
+    // Poll more frequently during active phases
+    const shouldPollFast = game.current_phase === 'guessing' || 
+                           game.current_phase === 'closed' || 
+                           game.current_phase === 'revealing';
+    const interval = shouldPollFast ? 2000 : 5000; // 2s during active, 5s otherwise
+    
+    const pollTimer = setInterval(() => {
+      fetchData();
+    }, interval);
+    
+    return () => clearInterval(pollTimer);
+  }, [game?.id, game?.current_phase, fetchData]);
+  
   // Check for confetti triggers (round 10 and 20 results)
   useEffect(() => {
     if ((game?.current_round_index === 10 || game?.current_round_index === 20) && 
